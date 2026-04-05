@@ -61,6 +61,16 @@
 - [x] **AUD-03**: Status transitions follow allowed workflow order.
 - [x] **AUD-04**: Referential integrity is enforced across all parent-child entities.
 
+### User Interface And Experience
+
+- [ ] **UI-01**: Blazor layout and navigation components render with consistent styling.
+- [ ] **UI-02**: Shared components (StatusBadge, PageTitle, FormSection) are reusable across workflows.
+- [ ] **UI-03**: Buyer dashboard displays RFP status summary and recent activity.
+- [ ] **UI-04**: Buyer can create, list, and detail RFPs through form und list UI.
+- [ ] **UI-05**: Buyer can finalize winning bid and sign contract through modal and form UI.
+- [ ] **UI-06**: Vendor dashboard displays pending invites and bid status.
+- [ ] **UI-07**: Vendor can accept invites, submit bids, and sign or decline contracts through UI.
+
 ## v2 Requirements
 
 ### Workflow Enhancements
@@ -119,14 +129,21 @@
 | AUD-02 | Phase 1 | Complete |
 | AUD-03 | Phase 5 | Complete |
 | AUD-04 | Phase 2 | Complete |
+| UI-01 | Phase 7 | Pending |
+| UI-02 | Phase 7 | Pending |
+| UI-03 | Phase 7 | Pending |
+| UI-04 | Phase 7 | Pending |
+| UI-05 | Phase 7 | Pending |
+| UI-06 | Phase 7 | Pending |
+| UI-07 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 29
+- v1 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0
 - Complete: 29
-- Pending: 0
+- Pending: 7
 
 ---
 *Requirements defined: 2026-04-04*
-*Last updated: 2026-04-05 after completing Phase 6 contract lifecycle and signatures*
+*Last updated: 2026-04-05 after adding Phase 7 UI/UX planning*

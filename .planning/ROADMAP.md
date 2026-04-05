@@ -28,6 +28,7 @@ This roadmap delivers an end-to-end source-to-contract platform in six phases: f
 - [x] **Phase 4: Buyer Bid Review And Comparison** - Compare bids against RFP requirements and retrieve decision context.
 - [x] **Phase 5: Finalization Workflow** - Select winning bid and lock finalized pricing snapshot.
 - [x] **Phase 6: Contract Lifecycle And Signatures** - Create contract, sign/decline flow, final legal status tracking.
+- [ ] **Phase 7: Buyer And Vendor UI And Dashboards** - Blazor components, buyer/vendor workflows, and role-based dashboards.
 
 ## Phase Details
 
@@ -119,6 +120,21 @@ Plans:
 - [x] 06-02: Implement buyer/vendor sign flow with timestamp and status handling.
 - [x] 06-03: Implement vendor decline flow and post-decline state rules.
 
+### Phase 7: Buyer And Vendor UI And Dashboards
+**Goal**: Build Blazor UI components and workflows for procurement management across buyer and vendor roles.
+**Depends on**: Phase 6
+**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07
+**Success Criteria** (what must be TRUE):
+1. Blazor components render without errors and follow shared styling patterns.
+2. Buyer can navigate through RFP creation, finalization, and contract signing workflows.
+3. Vendor can accept invites, submit bids, and sign or decline contracts through intuitive UI.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01: Implement Blazor component foundation and shared UI patterns.
+- [ ] 07-02: Implement buyer dashboard and RFP/finalize/contract workflows.
+- [ ] 07-03: Implement vendor dashboard and bid submission/contract signing workflows.
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -129,3 +145,4 @@ Plans:
 | 4. Buyer Bid Review And Comparison | 2/2 | Complete | 2026-04-05 |
 | 5. Finalization Workflow | 2/2 | Complete | 2026-04-05 |
 | 6. Contract Lifecycle And Signatures | 3/3 | Complete | 2026-04-05 |
+| 7. Buyer And Vendor UI And Dashboards | 0/3 | Not started | - |
