@@ -1,88 +1,360 @@
-@page "/buyer/contracts/{ContractId}"
+@page "/buyer/contracts/{ContractId:int}"
+@page "/buyer/rfps/{RfpId:int}/contract"
+@using System.Net
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Buyer
+@inject BuyerApiClient BuyerApi
+@inject NavigationManager Navigation
 
-<PageTitle Title="Contract Details" Subtitle="Review and sign the procurement contract" />
+<PageHeader Title="Contract Details" Subtitle="Review and sign the procurement contract" />
 
-<div class="grid grid-2">
+@if (IsLoading)
+{
     <div class="card">
-        <div class="card-header">Contract Status</div>
-        <div style="margin: 1rem 0;">
-            <StatusBadge Status="Created" />
-        </div>
-        <p style="margin: 0.5rem 0; color: var(--gray-700);">
-            <strong>Contract No:</strong> CNT-2026-0001<br />
-            <strong>Date:</strong> April 5, 2026
-        </p>
+        <div class="card-header">Loading contract</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching contract workflow state...</p>
     </div>
-
-    <div class="card">
-        <div class="card-header">Finalized Snapshot</div>
-        <p style="margin: 0.5rem 0; color: var(--gray-700);">
-            <strong>Total:</strong> $45,000 USD<br />
-            <strong>Lines:</strong> 2 items<br />
-            <strong>Locked:</strong> Yes
-        </p>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">Buyer Signature</div>
-    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div>
-                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed By:</p>
-                <p style="margin: 0.25rem 0; font-weight: 600;">John Buyer</p>
-                <p style="margin: 0; color: var(--gray-700); font-size: 0.85rem;">john@company.com</p>
-            </div>
-            <div>
-                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed At:</p>
-                <p style="margin: 0.25rem 0; font-weight: 600;">April 5, 2026 10:30 AM</p>
-                <p style="margin: 0; color: var(--success-color); font-size: 0.85rem;">✓ Signed</p>
-            </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Contract unavailable</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+            <a href="@BackHref" class="btn btn-secondary">Back</a>
         </div>
     </div>
+}
+else if (Contract is null && ResolvedRfpId > 0)
+{
+    <div class="card" style="max-width: 860px;">
+        <div class="card-header">Create Contract</div>
+        @if (!string.IsNullOrWhiteSpace(InfoMessage))
+        {
+            <div style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--primary-color); border-radius: 4px; color: var(--primary-color);">
+                @InfoMessage
+            </div>
+        }
 
-    @if (BuyerSigned)
-    {
-        <p style="color: var(--success-color); font-weight: 500; margin: 0;">
-            ✓ Buyer signature captured
-        </p>
-    }
-    else
-    {
-        <button type="button" class="btn btn-primary btn-lg">Sign with My Name</button>
-    }
-</div>
+        <div class="grid grid-2" style="margin-top: 1rem;">
+            <div class="form-group">
+                <label class="form-label">Contract Number</label>
+                <InputText @bind-Value="CreateForm.ContractNo" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <InputText @bind-Value="CreateForm.Title" class="form-control" />
+            </div>
+        </div>
 
-<div class="card">
-    <div class="card-header">Vendor Signature</div>
-    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem;">
-        <p style="margin: 0; color: var(--gray-700);">
-            Awaiting vendor response...
-        </p>
+        <div class="form-group">
+            <label class="form-label">File Url</label>
+            <InputText @bind-Value="CreateForm.FileUrl" class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Buyer Notes</label>
+            <InputTextArea @bind-Value="CreateForm.Note" class="form-control" rows="3" />
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleCreateContractAsync" disabled="@IsCreating">@(IsCreating ? "Creating..." : "Create Contract")</button>
+            <a href="@BackHref" class="btn btn-secondary btn-lg">Back to RFP</a>
+        </div>
     </div>
-</div>
+}
+else if (Contract is not null)
+{
+    <div class="grid grid-2">
+        <div class="card">
+            <div class="card-header">Contract Status</div>
+            <div style="margin: 1rem 0;">
+                <StatusBadge Status="@ToContractStatusLabel(Contract.Status)" />
+            </div>
+            <p style="margin: 0.5rem 0; color: var(--gray-700); line-height: 1.7;">
+                <strong>Contract No:</strong> @Contract.ContractNo<br />
+                <strong>Title:</strong> @Contract.Title<br />
+                <strong>RFP Id:</strong> @Contract.RfpId<br />
+                <strong>Created:</strong> @Contract.CreatedAtUtc.ToLocalTime().ToString("g")
+            </p>
+        </div>
 
-<div style="margin-top: 1.5rem;">
-    <a href="/buyer/contracts" class="btn btn-secondary">Back to Contracts</a>
-</div>
+        <div class="card">
+            <div class="card-header">Document</div>
+            <p style="margin: 0.5rem 0; color: var(--gray-700); line-height: 1.7;">
+                <strong>File:</strong> @Contract.FileUrl<br />
+                <strong>Updated:</strong> @Contract.UpdatedAtUtc.ToLocalTime().ToString("g")<br />
+                <strong>Workflow Note:</strong> @(string.IsNullOrWhiteSpace(Contract.Note) ? "No note recorded" : Contract.Note)
+            </p>
+            <a href="@Contract.FileUrl" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Open Contract File</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(InfoMessage))
+    {
+        <div class="card" style="border: 1px solid var(--primary-color); color: var(--primary-color);">
+            @InfoMessage
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header">Buyer Signature</div>
+        <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin: 1rem 0;">
+            @if (Contract.BuyerSign)
+            {
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed By</p>
+                        <p style="margin: 0.25rem 0; font-weight: 600;">Buyer workflow user</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed At</p>
+                        <p style="margin: 0.25rem 0; font-weight: 600;">@Contract.BuyerSignAt?.ToLocalTime().ToString("g")</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div style="display: grid; gap: 1rem;">
+                    <p style="margin: 0; color: var(--gray-700);">Sign the created contract to advance the lifecycle toward vendor signature.</p>
+                    <div class="form-group">
+                        <label class="form-label">Signature Note</label>
+                        <InputTextArea @bind-Value="BuyerSignNote" class="form-control" rows="3" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Contract.BuyerSign)
+        {
+            <p style="color: var(--success-color); font-weight: 500; margin: 0;">Buyer signature captured.</p>
+        }
+        else if (Contract.Status == (int)RfpContractStatus.Declined)
+        {
+            <p style="color: var(--danger-color); font-weight: 500; margin: 0;">This contract was declined and can no longer be signed by the buyer.</p>
+        }
+        else
+        {
+            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleBuyerSignAsync" disabled="@IsSigning">@(IsSigning ? "Signing..." : "Sign with My Name")</button>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-header">Vendor Signature</div>
+        <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-top: 1rem;">
+            @if (Contract.VendorSign)
+            {
+                <p style="margin: 0; color: var(--success-color);">Vendor signed at @Contract.VendorSignAt?.ToLocalTime().ToString("g").</p>
+            }
+            else if (Contract.Status == (int)RfpContractStatus.Declined)
+            {
+                <p style="margin: 0; color: var(--danger-color);">Vendor declined this contract. Buyer changes are locked until a new workflow is started.</p>
+            }
+            else
+            {
+                <p style="margin: 0; color: var(--gray-700);">Awaiting vendor response after buyer signature.</p>
+            }
+        </div>
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="@BackHref" class="btn btn-secondary">Back</a>
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@(IsLoading || IsCreating || IsSigning)">Refresh</button>
+    </div>
+}
 
 @code {
     [Parameter]
-    public string ContractId { get; set; } = string.Empty;
+    public int ContractId { get; set; }
 
-    private bool BuyerSigned = false;
+    [Parameter]
+    public int RfpId { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    private bool IsLoading = true;
+    private bool IsCreating;
+    private bool IsSigning;
+    private string? ErrorMessage;
+    private string? InfoMessage;
+    private string? BuyerSignNote;
+    private int ResolvedRfpId;
+    private ContractDetailResponse? Contract;
+    private readonly CreateContractFormModel CreateForm = new();
+
+    private string BackHref => ResolvedRfpId > 0 ? $"/buyer/rfps/{ResolvedRfpId}" : "/buyer/rfps";
+
+    protected override async Task OnParametersSetAsync()
     {
-        // TODO: Load contract from /api/buyer/contracts/{contractId}
-        await Task.CompletedTask;
+        await LoadAsync();
     }
 
-    private async Task HandleBuyerSign()
+    private async Task LoadAsync()
     {
-        // TODO: POST to /api/buyer/contracts/{contractId}/sign
-        BuyerSigned = true;
-        await Task.CompletedTask;
+        IsLoading = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            if (ContractId > 0)
+            {
+                Contract = await BuyerApi.GetContractAsync(ContractId);
+                ResolvedRfpId = Contract.RfpId;
+            }
+            else if (RfpId > 0)
+            {
+                ResolvedRfpId = RfpId;
+                Contract = await BuyerApi.TryGetContractByRfpAsync(RfpId);
+                if (Contract is not null)
+                {
+                    ContractId = Contract.Id;
+                }
+                else
+                {
+                    SeedCreateForm();
+                    InfoMessage = "No contract exists for this finalized RFP yet. Create one to continue the workflow.";
+                }
+            }
+            else
+            {
+                ErrorMessage = "No contract or RFP identifier was supplied.";
+            }
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading contract state: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleCreateContractAsync()
+    {
+        if (ResolvedRfpId <= 0)
+        {
+            ErrorMessage = "A finalized RFP is required before creating a contract.";
+            return;
+        }
+
+        IsCreating = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+
+        try
+        {
+            var result = await BuyerApi.CreateContractAsync(ResolvedRfpId, new CreateContractRequest(
+                NullIfWhiteSpace(CreateForm.ContractNo),
+                NullIfWhiteSpace(CreateForm.Title),
+                NullIfWhiteSpace(CreateForm.FileUrl),
+                NullIfWhiteSpace(CreateForm.Note)));
+
+            Navigation.NavigateTo($"/buyer/contracts/{result.Id}");
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.StatusCode switch
+            {
+                HttpStatusCode.Conflict when ex.Error.Code == "CONTRACT_ALREADY_EXISTS" => "A contract already exists for this finalized RFP. The page will refresh to that contract.",
+                HttpStatusCode.NotFound => "The finalized bid snapshot was not found. Finalize the RFP before creating a contract.",
+                HttpStatusCode.UnprocessableEntity => "The finalized RFP is not in a contract-ready status.",
+                _ => ex.Error.Message
+            };
+
+            if (ex.Error.StatusCode == HttpStatusCode.Conflict)
+            {
+                Contract = await BuyerApi.TryGetContractByRfpAsync(ResolvedRfpId);
+                if (Contract is not null)
+                {
+                    ContractId = Contract.Id;
+                    Navigation.NavigateTo($"/buyer/contracts/{Contract.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while creating the contract: {ex.Message}";
+        }
+        finally
+        {
+            IsCreating = false;
+        }
+    }
+
+    private async Task HandleBuyerSignAsync()
+    {
+        if (Contract is null)
+        {
+            ErrorMessage = "Create or load a contract before signing it.";
+            return;
+        }
+
+        IsSigning = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+
+        try
+        {
+            Contract = await BuyerApi.SignContractAsync(Contract.Id, new BuyerSignContractRequest(NullIfWhiteSpace(BuyerSignNote)));
+            BuyerSignNote = null;
+            InfoMessage = Contract.Status == (int)RfpContractStatus.Signed
+                ? "Both parties have now signed the contract."
+                : "Buyer signature recorded. The contract is awaiting vendor action.";
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.StatusCode switch
+            {
+                HttpStatusCode.Conflict when ex.Error.Code == "BUYER_ALREADY_SIGNED" => "The buyer signature is already recorded for this contract.",
+                HttpStatusCode.Conflict when ex.Error.Code == "CONTRACT_ALREADY_DECLINED" => "This contract was declined and cannot be signed by the buyer.",
+                HttpStatusCode.Conflict => "The contract state changed and no longer allows this signature action.",
+                _ => ex.Error.Message
+            };
+
+            if (ex.Error.StatusCode == HttpStatusCode.Conflict)
+            {
+                Contract = await BuyerApi.GetContractAsync(Contract.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while signing the contract: {ex.Message}";
+        }
+        finally
+        {
+            IsSigning = false;
+        }
+    }
+
+    private void SeedCreateForm()
+    {
+        if (!string.IsNullOrWhiteSpace(CreateForm.Title))
+        {
+            return;
+        }
+
+        CreateForm.ContractNo = $"CT-{DateTime.UtcNow:yyyyMMdd}-{ResolvedRfpId}";
+        CreateForm.Title = $"Contract for RFP {ResolvedRfpId}";
+        CreateForm.FileUrl = $"/contracts/CT-{DateTime.UtcNow:yyyyMMdd}-{ResolvedRfpId}.pdf";
+    }
+
+    private static string ToContractStatusLabel(int status)
+        => ((RfpContractStatus)status).ToString();
+
+    private static string? NullIfWhiteSpace(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private sealed class CreateContractFormModel
+    {
+        public string? ContractNo { get; set; }
+        public string? Title { get; set; }
+        public string? FileUrl { get; set; }
+        public string? Note { get; set; }
     }
 }

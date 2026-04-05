@@ -1,62 +1,244 @@
 @page "/buyer/rfps"
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Buyer
+@inject BuyerApiClient BuyerApi
 
-<PageTitle Title="RFP Management" Subtitle="Create, manage, and track requests for proposal" />
+<PageHeader Title="RFP Management" Subtitle="Create, manage, and track requests for proposal" />
 
-<div style="margin-bottom: 1.5rem;">
-    <a href="/buyer/rfps/create" class="btn btn-primary btn-lg">
-        ➕ Create New RFP
-    </a>
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <a href="/buyer/rfps/create" class="btn btn-primary btn-lg">Create New RFP</a>
+    <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@IsLoading">Refresh</button>
 </div>
 
-<div class="card">
-    <div class="card-header">My RFPs</div>
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Category</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Bids</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">IT Equipment Supply - Q2 2026</td>
-                    <td style="padding: 1rem;">Technology</td>
-                    <td style="text-align: center; padding: 1rem;">3</td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <StatusBadge Status="Created" />
-                    </td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <a href="/buyer/rfps/1" class="btn btn-sm btn-primary">View</a>
-                    </td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">Office Furniture Procurement</td>
-                    <td style="padding: 1rem;">Facilities</td>
-                    <td style="text-align: center; padding: 1rem;">5</td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <StatusBadge Status="Finalized" />
-                    </td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <a href="/buyer/rfps/2" class="btn btn-sm btn-primary">View</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">Filters</div>
+    <div class="grid grid-3" style="margin-top: 1rem; align-items: end;">
+        <div class="form-group">
+            <label class="form-label">Company Id</label>
+            <input type="number" class="form-control" @bind="CompanyIdFilterInput" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" @bind="StatusFilterInput">
+                <option value="">All statuses</option>
+                @foreach (var option in StatusOptions)
+                {
+                    <option value="@option.Value">@option.Label</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Page Size</label>
+            <select class="form-control" @bind="PageSize">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
     </div>
-    <p style="padding: 1rem 0 0 0; margin: 0; text-align: center; color: var(--gray-700);">
-        (Placeholder: Load from API)
-    </p>
+    <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-primary" @onclick="ApplyFiltersAsync" disabled="@IsLoading">Apply Filters</button>
+        <button type="button" class="btn btn-secondary" @onclick="ResetFiltersAsync" disabled="@IsLoading">Clear</button>
+    </div>
 </div>
+
+@if (IsLoading)
+{
+    <div class="card">
+        <div class="card-header">My RFPs</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Loading RFPs from the buyer API...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Unable to load RFPs</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">My RFPs</div>
+        @if (Response is null || Response.Items.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No RFPs matched the current filters.</p>
+        }
+        else
+        {
+            <div style="overflow-x: auto; margin-top: 1rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                            <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Company</th>
+                            <th style="text-align: right; padding: 1rem; font-weight: 600;">Budget</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Deadline</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Response.Items)
+                        {
+                            <tr style="border-bottom: 1px solid var(--gray-200);">
+                                <td style="padding: 1rem;">
+                                    <div style="font-weight: 600;">@item.Title</div>
+                                    <div style="color: var(--gray-700); font-size: 0.85rem; margin-top: 0.25rem;">Created @item.CreatedAtUtc.ToLocalTime().ToString("g")</div>
+                                </td>
+                                <td style="text-align: center; padding: 1rem;">@item.CompanyId</td>
+                                <td style="text-align: right; padding: 1rem;">@FormatBudget(item)</td>
+                                <td style="text-align: center; padding: 1rem;">@FormatDeadline(item.Deadline)</td>
+                                <td style="text-align: center; padding: 1rem;">
+                                    <StatusBadge Status="@ToStatusLabel(item.Status)" />
+                                </td>
+                                <td style="text-align: center; padding: 1rem; display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <a href="/buyer/rfps/@item.Id" class="btn btn-sm btn-primary">View</a>
+                                    @if (item.Status == (int)RfpStatus.Closed)
+                                    {
+                                        <a href="/buyer/rfps/@item.Id/contract" class="btn btn-sm btn-secondary">Contract</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <div style="color: var(--gray-700);">
+                    Showing @StartItem-@EndItem of @Response.Total
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button type="button" class="btn btn-secondary" @onclick="PreviousPageAsync" disabled="@(CurrentPage <= 1 || IsLoading)">Previous</button>
+                    <span>Page @CurrentPage of @TotalPages</span>
+                    <button type="button" class="btn btn-secondary" @onclick="NextPageAsync" disabled="@(CurrentPage >= TotalPages || IsLoading)">Next</button>
+                </div>
+            </div>
+        }
+    </div>
+}
 
 @code {
+    private static readonly IReadOnlyList<StatusOption> StatusOptions = new[]
+    {
+        new StatusOption(null, "All"),
+        new StatusOption((int)RfpStatus.Draft, "Draft"),
+        new StatusOption((int)RfpStatus.Published, "Published"),
+        new StatusOption((int)RfpStatus.InProgress, "In Progress"),
+        new StatusOption((int)RfpStatus.Closed, "Closed"),
+        new StatusOption((int)RfpStatus.Canceled, "Canceled")
+    };
+
+    private bool IsLoading = true;
+    private string? ErrorMessage;
+    private RfpListResponse? Response;
+    private int CurrentPage = 1;
+    private int PageSize = 10;
+    private int? CompanyIdFilter;
+    private int? StatusFilter;
+    private string? CompanyIdFilterInput;
+    private string? StatusFilterInput;
+
+    private int TotalPages => Response is null || Response.Total == 0 ? 1 : (int)Math.Ceiling(Response.Total / (double)PageSize);
+    private int StartItem => Response is null || Response.Total == 0 ? 0 : ((CurrentPage - 1) * PageSize) + 1;
+    private int EndItem => Response is null ? 0 : Math.Min(CurrentPage * PageSize, Response.Total);
+
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load RFP list from API
-        await Task.CompletedTask;
+        await LoadAsync();
     }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            Response = await BuyerApi.GetRfpsAsync(CompanyIdFilter, StatusFilter, CurrentPage, PageSize);
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading RFPs: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        CompanyIdFilter = int.TryParse(CompanyIdFilterInput, out var companyId) ? companyId : null;
+        StatusFilter = int.TryParse(StatusFilterInput, out var status) ? status : null;
+        CurrentPage = 1;
+        await LoadAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        CompanyIdFilter = null;
+        StatusFilter = null;
+        CompanyIdFilterInput = null;
+        StatusFilterInput = null;
+        CurrentPage = 1;
+        await LoadAsync();
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (CurrentPage <= 1)
+        {
+            return;
+        }
+
+        CurrentPage--;
+        await LoadAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (CurrentPage >= TotalPages)
+        {
+            return;
+        }
+
+        CurrentPage++;
+        await LoadAsync();
+    }
+
+    private static string FormatBudget(RfpListItem item)
+    {
+        if (item.BudgetMin is null && item.BudgetMax is null)
+        {
+            return "Not set";
+        }
+
+        if (item.BudgetMin is not null && item.BudgetMax is not null)
+        {
+            return $"{item.BudgetMin:N0} - {item.BudgetMax:N0}";
+        }
+
+        return item.BudgetMin is not null ? $"From {item.BudgetMin:N0}" : $"Up to {item.BudgetMax:N0}";
+    }
+
+    private static string FormatDeadline(DateTime? deadline)
+        => deadline?.ToLocalTime().ToString("g") ?? "Open";
+
+    private static string ToStatusLabel(int status)
+        => status switch
+        {
+            (int)RfpStatus.Closed => "Finalized",
+            (int)RfpStatus.Canceled => "Declined",
+            _ => ((RfpStatus)status).ToString()
+        };
+
+    private sealed record StatusOption(int? Value, string Label);
 }

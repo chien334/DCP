@@ -216,6 +216,19 @@ public class RfpFinalizeEndpointsTests : IClassFixture<WebApplicationFactory<Pro
         Assert.Equal(120000m, item.GetProperty("totalPrice").GetDecimal());
     }
 
+    [Fact(DisplayName = "FIN-01 finalize lookup returns 404 before winner selection")]
+    public async Task FIN01_GetFinalizeBeforeSelection_Returns404()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var (rfpId, _) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+
+        var response = await buyer.GetAsync($"/api/buyer/rfps/{rfpId}/finalize");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     [Fact(DisplayName = "FIN-01 duplicate finalize returns 409")]
     public async Task FIN01_DuplicateFinalizeReturns409()
     {
@@ -232,6 +245,8 @@ public class RfpFinalizeEndpointsTests : IClassFixture<WebApplicationFactory<Pro
         var second = await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/finalize", new { rfpBidId = bidId });
 
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        var body = await second.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("RFP_ALREADY_FINALIZED", body.GetProperty("code").GetString());
     }
 
     [Fact(DisplayName = "FIN-01 invalid bid for rfp returns 422")]

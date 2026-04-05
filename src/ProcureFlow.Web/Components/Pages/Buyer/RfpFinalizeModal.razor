@@ -1,65 +1,225 @@
-@page "/buyer/rfps/{RfpId}/finalize"
+@page "/buyer/rfps/{RfpId:int}/finalize"
+@using System.Net
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Buyer
+@using ProcureFlow.Web.Endpoints.Vendor
+@inject BuyerApiClient BuyerApi
+@inject NavigationManager Navigation
 
-<PageTitle Title="Finalize RFP" Subtitle="Select winning bid and lock pricing" />
+<PageHeader Title="Finalize RFP" Subtitle="Select winning bid and lock pricing" />
 
-<div class="card" style="max-width: 800px;">
-    <div class="card-header">Select Winning Bid</div>
-    
-    <div style="margin: 1.5rem 0;">
-        <p style="color: var(--gray-700); margin: 0 0 1rem 0;">
-            Choose the best bid for finalization. Once finalized, the pricing becomes locked.
-        </p>
+@if (IsLoading)
+{
+    <div class="card" style="max-width: 800px;">
+        <div class="card-header">Loading bids</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching bids and existing finalize state...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="max-width: 800px; border: 1px solid var(--danger-color);">
+        <div class="card-header">Finalize unavailable</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+            <a href="/buyer/rfps/@RfpId" class="btn btn-secondary">Back to Detail</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card" style="max-width: 800px;">
+        <div class="card-header">Select Winning Bid</div>
 
-        <div style="background-color: var(--gray-50); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
-            <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                <input type="radio" name="bid-selection" value="1" id="bid-1" checked />
-                <label for="bid-1" style="cursor: pointer; flex: 1;">
-                    <strong>TechSupply Inc.</strong> - $45,000
-                    <br /><span style="color: var(--gray-700); font-size: 0.9rem;">Fast delivery, 30-day warranty</span>
-                </label>
+        @if (!string.IsNullOrWhiteSpace(InfoMessage))
+        {
+            <div style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--primary-color); border-radius: 4px; color: var(--primary-color);">
+                @InfoMessage
             </div>
-        </div>
+        }
 
-        <div style="background-color: var(--gray-50); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
-            <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                <input type="radio" name="bid-selection" value="2" id="bid-2" />
-                <label for="bid-2" style="cursor: pointer; flex: 1;">
-                    <strong>Global Tech Solutions</strong> - $42,500
-                    <br /><span style="color: var(--gray-700); font-size: 0.9rem;">Lowest price, 90-day support included</span>
-                </label>
+        @if (FinalizeDetail is not null)
+        {
+            <div style="margin-top: 1rem;">
+                <p style="color: var(--gray-700); margin: 0 0 1rem 0;">
+                    This RFP has already been finalized. The pricing snapshot below is now locked.
+                </p>
+                <div class="card" style="background-color: var(--gray-50); margin-bottom: 1.5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--gray-300); margin-bottom: 1rem;">Finalization Summary</div>
+                    <div style="padding: 0; display: grid; gap: 0.5rem;">
+                        <p style="margin: 0;"><strong>Winning Bid Id:</strong> @FinalizeDetail.RfpBidId</p>
+                        <p style="margin: 0;"><strong>Grand Total:</strong> @FormatCurrency(FinalizeDetail.GrandTotal, FinalizeDetail.Currency)</p>
+                        <p style="margin: 0;"><strong>Subtotal:</strong> @FormatCurrency(FinalizeDetail.SubTotal, FinalizeDetail.Currency)</p>
+                        <p style="margin: 0;"><strong>Vat Rate:</strong> @FinalizeDetail.VatRate%</p>
+                        <p style="margin: 0;"><strong>Snapshot Items:</strong></p>
+                        <ul style="margin: 0.5rem 0 0 1rem;">
+                            @foreach (var item in FinalizeDetail.Items)
+                            {
+                                <li>RFP item @item.RfpItemId: @item.Quantity x @FormatCurrency(item.UnitPrice, item.Currency) = @FormatCurrency(item.TotalPrice, item.Currency)</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/buyer/rfps/@RfpId/contract" class="btn btn-primary btn-lg">Continue to Contract</a>
+                    <a href="/buyer/rfps/@RfpId" class="btn btn-secondary btn-lg">Back to Detail</a>
+                </div>
             </div>
-        </div>
-    </div>
+        }
+        else if (Bids.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No submitted bids are available for finalization yet.</p>
+            <div style="margin-top: 1rem;">
+                <a href="/buyer/rfps/@RfpId" class="btn btn-secondary btn-lg">Back to Detail</a>
+            </div>
+        }
+        else
+        {
+            <div style="margin: 1.5rem 0; display: grid; gap: 1rem;">
+                <p style="color: var(--gray-700); margin: 0;">
+                    Choose the best submitted bid. Once finalized, the pricing and item totals become immutable.
+                </p>
 
-    <div class="card" style="background-color: var(--gray-50); margin-bottom: 1.5rem;">
-        <div class="card-header" style="border-bottom: 1px solid var(--gray-300); margin-bottom: 1rem;">
-            Finalization Summary
-        </div>
-        <div style="padding: 0;">
-            <p><strong>Total Price:</strong> $45,000</p>
-            <p><strong>Currency:</strong> USD</p>
-            <p><strong>Items (Locked Snapshot):</strong></p>
-            <ul style="margin: 0.5rem 0; padding-left: 2rem;">
-                <li>Item 1: 50 units @@ $500/unit = $25,000</li>
-                <li>Item 2: 20 units @@ $1,000/unit = $20,000</li>
-            </ul>
-        </div>
-    </div>
+                @foreach (var bid in Bids)
+                {
+                    var elementId = $"bid-{bid.Id}";
+                    <div style="background-color: var(--gray-50); padding: 1rem; border-radius: 4px; border: 1px solid var(--gray-200);">
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <input type="radio" name="bid-selection" value="@bid.Id" id="@elementId" checked="@(SelectedBidId == bid.Id)" @onchange="() => SelectedBidId = bid.Id" />
+                            <label for="@elementId" style="cursor: pointer; flex: 1;">
+                                <strong>Vendor Company @bid.CompanyId</strong>
+                                <br />
+                                <span style="color: var(--gray-700); font-size: 0.95rem;">Subtotal @FormatCurrency(bid.SubTotal, bid.Currency), total @FormatCurrency(bid.GrandTotal, bid.Currency)</span>
+                                <br />
+                                <span style="color: var(--gray-700); font-size: 0.85rem;">Status: @((RfpBidStatus)bid.Status)</span>
+                            </label>
+                        </div>
+                    </div>
+                }
+            </div>
 
-    <div style="display: flex; gap: 1rem;">
-        <button type="button" class="btn btn-primary btn-lg">Finalize This Bid</button>
-        <a href="/buyer/rfps" class="btn btn-secondary btn-lg">Cancel</a>
+            @if (SelectedBid is not null)
+            {
+                <div class="card" style="background-color: var(--gray-50); margin-bottom: 1.5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--gray-300); margin-bottom: 1rem;">Finalization Preview</div>
+                    <div style="padding: 0; display: grid; gap: 0.5rem;">
+                        <p style="margin: 0;"><strong>Bid Id:</strong> @SelectedBid.Id</p>
+                        <p style="margin: 0;"><strong>Vendor Company:</strong> @SelectedBid.CompanyId</p>
+                        <p style="margin: 0;"><strong>Subtotal:</strong> @FormatCurrency(SelectedBid.SubTotal, SelectedBid.Currency)</p>
+                        <p style="margin: 0;"><strong>Grand Total:</strong> @FormatCurrency(SelectedBid.GrandTotal, SelectedBid.Currency)</p>
+                    </div>
+                </div>
+            }
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-lg" @onclick="HandleFinalizeAsync" disabled="@(IsSubmitting || SelectedBidId is null)">@(IsSubmitting ? "Finalizing..." : "Finalize This Bid")</button>
+                <a href="/buyer/rfps/@RfpId" class="btn btn-secondary btn-lg">Cancel</a>
+            </div>
+        }
     </div>
-</div>
+}
 
 @code {
     [Parameter]
-    public string RfpId { get; set; } = string.Empty;
+    public int RfpId { get; set; }
 
-    private async Task HandleFinalize()
+    private bool IsLoading = true;
+    private bool IsSubmitting;
+    private string? ErrorMessage;
+    private string? InfoMessage;
+    private List<BidListItem> Bids = new();
+    private FinalizeDetailResponse? FinalizeDetail;
+    private int? SelectedBidId;
+    private BidListItem? SelectedBid => SelectedBidId is null ? null : Bids.FirstOrDefault(bid => bid.Id == SelectedBidId.Value);
+
+    protected override async Task OnParametersSetAsync()
     {
-        // TODO: POST to /api/buyer/rfps/{rfpId}/finalize
-        await Task.CompletedTask;
+        await LoadAsync();
     }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var bidsTask = BuyerApi.GetRfpBidsAsync(RfpId);
+            var finalizeTask = BuyerApi.TryGetFinalizeAsync(RfpId);
+            await Task.WhenAll(bidsTask, finalizeTask);
+
+            Bids = (await bidsTask)
+                .Where(bid => bid.Status == (int)RfpBidStatus.Submitted)
+                .OrderBy(bid => bid.GrandTotal)
+                .ToList();
+            FinalizeDetail = await finalizeTask;
+            SelectedBidId = Bids.FirstOrDefault()?.Id;
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading finalization data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task HandleFinalizeAsync()
+    {
+        if (SelectedBidId is null)
+        {
+            ErrorMessage = "Select a submitted bid before finalizing.";
+            return;
+        }
+
+        IsSubmitting = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+
+        try
+        {
+            await BuyerApi.FinalizeBidAsync(RfpId, new FinalizeBidRequest(SelectedBidId.Value, "Finalized from buyer workflow page"));
+            Navigation.NavigateTo($"/buyer/rfps/{RfpId}/contract", forceLoad: false);
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.StatusCode switch
+            {
+                HttpStatusCode.Conflict when ex.Error.Code == "RFP_ALREADY_FINALIZED" => "This RFP was already finalized in another session. You can continue to contract creation.",
+                HttpStatusCode.Conflict => "The current RFP status no longer allows finalization.",
+                HttpStatusCode.UnprocessableEntity when ex.Error.Code == "INVALID_BID_FOR_RFP" => "The selected bid does not belong to this RFP.",
+                HttpStatusCode.UnprocessableEntity when ex.Error.Code == "BID_STATUS_NOT_ALLOWED" => "Only submitted bids can be finalized.",
+                HttpStatusCode.UnprocessableEntity => "The selected bid could not be finalized. Review the current bid state and try again.",
+                _ => ex.Error.Message
+            };
+
+            if (ex.Error.StatusCode == HttpStatusCode.Conflict)
+            {
+                FinalizeDetail = await BuyerApi.TryGetFinalizeAsync(RfpId);
+                if (FinalizeDetail is not null)
+                {
+                    InfoMessage = "The RFP is already finalized. The locked snapshot is shown below.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while finalizing the bid: {ex.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private static string FormatCurrency(decimal amount, string currency)
+        => $"{amount:N0} {currency}";
 }

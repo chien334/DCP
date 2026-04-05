@@ -288,6 +288,21 @@ public class ContractLifecycleEndpointsTests : IClassFixture<WebApplicationFacto
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact(DisplayName = "FIN-03 buyer can load contract by RFP id")]
+    public async Task FIN03_BuyerCanLoadContractByRfpId()
+    {
+        var buyer = CreateBuyerClient();
+        var (rfpId, _) = await SeedFinalizedRfpAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/contract", new { contractNo = "CT-0008A" });
+
+        var response = await buyer.GetAsync($"/api/buyer/rfps/{rfpId}/contract");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(rfpId, body.GetProperty("rfpId").GetInt32());
+    }
+
     [Fact(DisplayName = "FIN-03 buyer can load contract by contractId")]
     public async Task FIN03_BuyerCanLoadContractByContractId()
     {
@@ -306,6 +321,26 @@ public class ContractLifecycleEndpointsTests : IClassFixture<WebApplicationFacto
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(contractId, body.GetProperty("id").GetInt32());
         Assert.Equal(rfpId, body.GetProperty("rfpId").GetInt32());
+    }
+
+    [Fact(DisplayName = "FIN-04 repeated buyer sign returns 409 with buyer-signed code")]
+    public async Task FIN04_RepeatedBuyerSignReturns409()
+    {
+        var buyer = CreateBuyerClient();
+        var (rfpId, _) = await SeedFinalizedRfpAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/contract", new { contractNo = "CT-0008B" });
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var contractId = await db.RfpContracts.Select(c => c.Id).SingleAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/contracts/{contractId}/sign", new { note = "First buyer sign" });
+        var second = await buyer.PostAsJsonAsync($"/api/buyer/contracts/{contractId}/sign", new { note = "Second buyer sign" });
+
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        var body = await second.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("BUYER_ALREADY_SIGNED", body.GetProperty("code").GetString());
     }
 
     [Fact(DisplayName = "FIN-05 vendor can load contract detail endpoint")]

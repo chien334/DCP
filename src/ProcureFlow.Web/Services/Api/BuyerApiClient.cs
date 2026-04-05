@@ -46,8 +46,14 @@ public sealed class BuyerApiClient
     public Task<FinalizeDetailResponse> GetFinalizeAsync(int rfpId, CancellationToken cancellationToken = default)
         => GetAsync<FinalizeDetailResponse>($"/api/buyer/rfps/{rfpId}/finalize", cancellationToken);
 
+    public Task<FinalizeDetailResponse?> TryGetFinalizeAsync(int rfpId, CancellationToken cancellationToken = default)
+        => TryGetAsync<FinalizeDetailResponse>($"/api/buyer/rfps/{rfpId}/finalize", cancellationToken);
+
     public Task<ContractDetailResponse> GetContractByRfpAsync(int rfpId, CancellationToken cancellationToken = default)
         => GetAsync<ContractDetailResponse>($"/api/buyer/rfps/{rfpId}/contract", cancellationToken);
+
+    public Task<ContractDetailResponse?> TryGetContractByRfpAsync(int rfpId, CancellationToken cancellationToken = default)
+        => TryGetAsync<ContractDetailResponse>($"/api/buyer/rfps/{rfpId}/contract", cancellationToken);
 
     public Task<ContractDetailResponse> GetContractAsync(int contractId, CancellationToken cancellationToken = default)
         => GetAsync<ContractDetailResponse>($"/api/buyer/contracts/{contractId}", cancellationToken);
@@ -70,6 +76,19 @@ public sealed class BuyerApiClient
     private async Task<T> GetAsync<T>(string url, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(url, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return (await response.Content.ReadFromJsonAsync<T>(cancellationToken))
+            ?? throw new ApiException(new ApiError(HttpStatusCode.InternalServerError, "EMPTY_RESPONSE", "Response payload was empty", null));
+    }
+
+    private async Task<T?> TryGetAsync<T>(string url, CancellationToken cancellationToken) where T : class
+    {
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
         await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<T>(cancellationToken))
             ?? throw new ApiException(new ApiError(HttpStatusCode.InternalServerError, "EMPTY_RESPONSE", "Response payload was empty", null));

@@ -1,56 +1,177 @@
 @page "/buyer/dashboard"
 @using ProcureFlow.Web.Components.Shared
-@using ProcureFlow.Core.Entities
+@using ProcureFlow.Web.Endpoints.Buyer
+@inject BuyerApiClient BuyerApi
 
-<PageTitle Title="Buyer Dashboard" Subtitle="Monitor your RFP and contract workflow" />
+<PageHeader Title="Buyer Dashboard" Subtitle="Monitor your RFP and contract workflow" />
 
-<div class="grid grid-3">
+@if (IsLoading)
+{
     <div class="card">
-        <div class="card-header">Active RFPs</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
-            @RfpCount
+        <div class="card-header">Loading dashboard</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching live buyer workflow metrics...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Dashboard unavailable</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+    </div>
+}
+else
+{
+    <div class="grid grid-3">
+        <div class="card">
+            <div class="card-header">Active RFPs</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
+                @RfpCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">RFPs still open for buyer action</p>
         </div>
-        <p style="margin: 0; color: var(--gray-700);">RFPs in progress</p>
+
+        <div class="card">
+            <div class="card-header">Pending Bids</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
+                @PendingBidCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">Invited vendors that have not submitted yet</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Contracts</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
+                @SignedContractCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">Contracts that reached fully signed status</p>
+        </div>
     </div>
 
     <div class="card">
-        <div class="card-header">Pending Bids</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
-            @PendingBidCount
-        </div>
-        <p style="margin: 0; color: var(--gray-700);">Awaiting vendor responses</p>
+        <div class="card-header">Recent Activity</div>
+        @if (RecentActivities.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No RFP activity is available yet.</p>
+        }
+        else
+        {
+            <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                @foreach (var activity in RecentActivities)
+                {
+                    <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                        <div>
+                            <div style="font-weight: 600;">@activity.Title</div>
+                            <div style="color: var(--gray-700); font-size: 0.9rem; margin-top: 0.25rem;">
+                                @activity.BidCount bids, @activity.InviteCount invites, @activity.PendingInvites pending
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <StatusBadge Status="@activity.StatusLabel" />
+                            <a href="/buyer/rfps/@activity.RfpId" class="btn btn-sm btn-primary">Open</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </div>
 
-    <div class="card">
-        <div class="card-header">Contracts</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
-            @SignedContractCount
-        </div>
-        <p style="margin: 0; color: var(--gray-700);">Fully signed</p>
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+        <a href="/buyer/rfps" class="btn btn-primary">View All RFPs</a>
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Refresh</button>
     </div>
-</div>
-
-<div class="card">
-    <div class="card-header">Recent Activity</div>
-    <div style="padding: 1rem; color: var(--gray-700);">
-        <p>Latest RFPs and bids will appear here.</p>
-    </div>
-</div>
-
-<div style="margin-top: 1.5rem;">
-    <a href="/buyer/rfps" class="btn btn-primary">
-        View All RFPs
-    </a>
-</div>
+}
 
 @code {
-    private int RfpCount = 5;
-    private int PendingBidCount = 3;
-    private int SignedContractCount = 2;
+    private bool IsLoading = true;
+    private string? ErrorMessage;
+    private int RfpCount;
+    private int PendingBidCount;
+    private int SignedContractCount;
+    private List<DashboardActivityItem> RecentActivities = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load dashboard metrics from API
-        await Task.CompletedTask;
+        await LoadAsync();
     }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await BuyerApi.GetRfpsAsync(page: 1, pageSize: 100);
+            var rfps = response.Items.OrderByDescending(item => item.CreatedAtUtc).ToList();
+            var activeRfps = rfps.Where(item => item.Status != (int)RfpStatus.Closed && item.Status != (int)RfpStatus.Canceled).ToList();
+            var closedRfps = rfps.Where(item => item.Status == (int)RfpStatus.Closed).ToList();
+
+            var activityTasks = activeRfps.Select(async item =>
+            {
+                var invitesTask = BuyerApi.GetRfpInvitesAsync(item.Id);
+                var bidsTask = BuyerApi.GetRfpBidsAsync(item.Id);
+                await Task.WhenAll(invitesTask, bidsTask);
+
+                var invites = await invitesTask;
+                var bids = await bidsTask;
+                var submittedCompanyIds = bids
+                    .Where(bid => bid.Status == (int)RfpBidStatus.Submitted)
+                    .Select(bid => bid.CompanyId)
+                    .ToHashSet();
+
+                return new DashboardActivityItem(
+                    item.Id,
+                    item.Title,
+                    ToRfpStatusLabel(item.Status),
+                    invites.Length,
+                    bids.Length,
+                    invites.Count(invite => !submittedCompanyIds.Contains(invite.CompanyId)),
+                    item.CreatedAtUtc);
+            });
+
+            var contractTasks = closedRfps.Select(item => BuyerApi.TryGetContractByRfpAsync(item.Id));
+
+            var allActivities = (await Task.WhenAll(activityTasks)).ToList();
+            RecentActivities = allActivities
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .Take(5)
+                .ToList();
+
+            var contracts = await Task.WhenAll(contractTasks);
+            RfpCount = activeRfps.Count;
+            PendingBidCount = allActivities.Sum(item => item.PendingInvites);
+            SignedContractCount = contracts.Count(contract => contract?.Status == (int)RfpContractStatus.Signed);
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading dashboard: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private static string ToRfpStatusLabel(int status)
+        => status switch
+        {
+            (int)RfpStatus.Closed => "Finalized",
+            (int)RfpStatus.Canceled => "Declined",
+            _ => ((RfpStatus)status).ToString()
+        };
+
+    private sealed record DashboardActivityItem(
+        int RfpId,
+        string Title,
+        string StatusLabel,
+        int InviteCount,
+        int BidCount,
+        int PendingInvites,
+        DateTime CreatedAtUtc);
 }

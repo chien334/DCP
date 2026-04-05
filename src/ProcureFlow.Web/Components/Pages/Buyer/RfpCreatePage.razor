@@ -1,67 +1,480 @@
 @page "/buyer/rfps/create"
+@using System.Net
+@using System.ComponentModel.DataAnnotations
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Buyer
+@using ProcureFlow.Web.Endpoints.MasterData
+@inject BuyerApiClient BuyerApi
+@inject MasterDataApiClient MasterDataApi
+@inject NavigationManager Navigation
 
-<PageTitle Title="Create RFP" Subtitle="Define items, specs, and invite vendors" />
+<PageHeader Title="Create RFP" Subtitle="Define items, specs, and invite vendors" />
 
-<div class="card" style="max-width: 800px;">
-    <form>
-        <div class="form-group">
-            <label class="form-label">RFP Title</label>
-            <input type="text" class="form-control" placeholder="e.g., IT Equipment Supply Q2 2026" />
-        </div>
+@if (IsLoadingLookups)
+{
+    <div class="card">
+        <div class="card-header">Loading form</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching category and administrative unit data...</p>
+    </div>
+}
+else
+{
+    <div class="card" style="max-width: 960px;">
+        @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+        {
+            <div style="padding: 1rem; border: 1px solid var(--danger-color); border-radius: 4px; margin-bottom: 1rem; color: var(--danger-color);">
+                @ErrorMessage
+            </div>
+        }
 
-        <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea class="form-control" rows="4" placeholder="Provide detailed requirements and context"></textarea>
-        </div>
+        @if (ValidationMessages.Count > 0)
+        {
+            <div style="padding: 1rem; border: 1px solid var(--warning-color); border-radius: 4px; margin-bottom: 1rem; color: var(--warning-color);">
+                <strong>Validation details</strong>
+                <ul style="margin: 0.75rem 0 0 1rem;">
+                    @foreach (var message in ValidationMessages)
+                    {
+                        <li>@message</li>
+                    }
+                </ul>
+            </div>
+        }
 
-        <div class="grid-2">
-            <div class="form-group">
-                <label class="form-label">Category</label>
-                <select class="form-control">
-                    <option>Select a category</option>
-                    <option>Technology</option>
-                    <option>Facilities</option>
-                    <option>Services</option>
-                </select>
+        <EditForm Model="Form" OnValidSubmit="HandleSubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Buyer Company Id</label>
+                    <InputNumber @bind-Value="Form.CompanyId" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <InputSelect @bind-Value="Form.CategoryId" class="form-control">
+                        <option value="0">Select a category</option>
+                        @foreach (var category in Categories)
+                        {
+                            <option value="@category.Id">@category.CategoryName</option>
+                        }
+                    </InputSelect>
+                </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Budget Range</label>
-                <input type="text" class="form-control" placeholder="e.g., $10,000 - $50,000" />
+                <label class="form-label">RFP Title</label>
+                <InputText @bind-Value="Form.Title" class="form-control" />
             </div>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label">Submission Deadline</label>
-            <input type="datetime-local" class="form-control" />
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Attachments</label>
-            <input type="file" class="form-control" multiple />
-        </div>
-
-        <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Items & Specs</h3>
-        <div class="card" style="margin-bottom: 1rem; background-color: var(--gray-50);">
-            <div style="padding: 1rem;">
-                <p style="margin: 0; color: var(--gray-700);">
-                    (Item/Spec input form will be built here - allows nested inputs)
-                </p>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <InputTextArea @bind-Value="Form.Description" class="form-control" rows="4" />
             </div>
-        </div>
 
-        <div style="display: flex; gap: 1rem;">
-            <button type="submit" class="btn btn-primary btn-lg">Create RFP</button>
-            <a href="/buyer/rfps" class="btn btn-secondary btn-lg">Cancel</a>
-        </div>
-    </form>
-</div>
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Administrative Unit Reference</label>
+                    <select class="form-control" @bind="Form.AdminUnitCode">
+                        <option value="">No reference</option>
+                        @foreach (var unit in AdministrativeUnits)
+                        {
+                            <option value="@unit.Code">@unit.Code - @unit.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Submission Deadline</label>
+                    <InputDate @bind-Value="Form.DeadlineDate" class="form-control" />
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Budget Min</label>
+                    <InputNumber @bind-Value="Form.BudgetMin" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Budget Max</label>
+                    <InputNumber @bind-Value="Form.BudgetMax" class="form-control" />
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <InputSelect @bind-Value="Form.Type" class="form-control">
+                        @foreach (var value in Enum.GetValues<RfpType>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Privacy Mode</label>
+                    <InputSelect @bind-Value="Form.PrivacyMode" class="form-control">
+                        @foreach (var value in Enum.GetValues<RfpPrivacyMode>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Buyer Notes</label>
+                <InputTextArea @bind-Value="Form.Note" class="form-control" rows="3" />
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem; background-color: var(--gray-50);">
+                <div class="card-header">Items & Specs</div>
+                <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+                    @for (var itemIndex = 0; itemIndex < Form.Items.Count; itemIndex++)
+                    {
+                        var item = Form.Items[itemIndex];
+                        <div style="padding: 1rem; background-color: white; border-radius: 4px; border: 1px solid var(--gray-200);">
+                            <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                                <strong>Item @(itemIndex + 1)</strong>
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="() => RemoveItem(item)">Remove Item</button>
+                            </div>
+
+                            <div class="grid grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Name</label>
+                                    <InputText @bind-Value="item.Name" class="form-control" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Unit</label>
+                                    <InputText @bind-Value="item.Unit" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">Quantity</label>
+                                    <InputNumber @bind-Value="item.Quantity" class="form-control" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Note</label>
+                                    <InputText @bind-Value="item.Note" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                                @for (var specIndex = 0; specIndex < item.Specs.Count; specIndex++)
+                                {
+                                    var spec = item.Specs[specIndex];
+                                    <div style="padding: 1rem; background-color: var(--gray-50); border-radius: 4px; border: 1px solid var(--gray-200);">
+                                        <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                                            <strong>Spec @(specIndex + 1)</strong>
+                                            <button type="button" class="btn btn-secondary btn-sm" @onclick="() => RemoveSpec(item, spec)">Remove Spec</button>
+                                        </div>
+                                        <div class="grid grid-2">
+                                            <div class="form-group">
+                                                <label class="form-label">Key</label>
+                                                <InputText @bind-Value="spec.Key" class="form-control" />
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Text Value</label>
+                                                <InputText @bind-Value="spec.ValueText" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-3">
+                                            <div class="form-group">
+                                                <label class="form-label">Numeric Value</label>
+                                                <InputNumber @bind-Value="spec.ValueNumber" class="form-control" />
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Boolean Value</label>
+                                                <select class="form-control" value="@BoolToInput(spec.ValueBoolean)" @onchange="args => spec.ValueBoolean = ParseNullableBool(args.Value?.ToString())">
+                                                    <option value="">Unset</option>
+                                                    <option value="true">True</option>
+                                                    <option value="false">False</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Unit</label>
+                                                <InputText @bind-Value="spec.Unit" class="form-control" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 1rem;" @onclick="() => AddSpec(item)">Add Spec</button>
+                        </div>
+                    }
+                </div>
+                <button type="button" class="btn btn-secondary" style="margin-top: 1rem;" @onclick="AddItem">Add Item</button>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem; background-color: var(--gray-50);">
+                <div class="card-header">Attachments</div>
+                <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+                    @for (var attachmentIndex = 0; attachmentIndex < Form.Attachments.Count; attachmentIndex++)
+                    {
+                        var attachment = Form.Attachments[attachmentIndex];
+                        <div style="padding: 1rem; background-color: white; border-radius: 4px; border: 1px solid var(--gray-200);">
+                            <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                                <strong>Attachment @(attachmentIndex + 1)</strong>
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="() => RemoveAttachment(attachment)">Remove</button>
+                            </div>
+                            <div class="grid grid-2">
+                                <div class="form-group">
+                                    <label class="form-label">File Name</label>
+                                    <InputText @bind-Value="attachment.FileName" class="form-control" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">File Url</label>
+                                    <InputText @bind-Value="attachment.FileUrl" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <button type="button" class="btn btn-secondary" style="margin-top: 1rem;" @onclick="AddAttachment">Add Attachment</button>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary btn-lg" disabled="@IsSubmitting">@(IsSubmitting ? "Creating..." : "Create RFP")</button>
+                <a href="/buyer/rfps" class="btn btn-secondary btn-lg">Cancel</a>
+            </div>
+        </EditForm>
+    </div>
+}
 
 @code {
-    private async Task HandleSubmit()
+    private readonly CreateRfpFormModel Form = new();
+    private bool IsLoadingLookups = true;
+    private bool IsSubmitting;
+    private string? ErrorMessage;
+    private List<string> ValidationMessages = new();
+    private List<CategoryFlatItem> Categories = new();
+    private List<AdministrativeUnitItem> AdministrativeUnits = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        // TODO: Post form to /api/buyer/rfps endpoint
-        await Task.CompletedTask;
+        AddItem();
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        IsLoadingLookups = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var categoriesTask = MasterDataApi.GetCategoriesAsync();
+            var unitsTask = MasterDataApi.GetAdministrativeUnitsAsync(pageSize: 100);
+            await Task.WhenAll(categoriesTask, unitsTask);
+
+            Categories = (await categoriesTask).Items.OrderBy(item => item.CategoryName).ToList();
+            AdministrativeUnits = (await unitsTask).Items.OrderBy(item => item.Name).ToList();
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading create-form lookups: {ex.Message}";
+        }
+        finally
+        {
+            IsLoadingLookups = false;
+        }
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        IsSubmitting = true;
+        ErrorMessage = null;
+        ValidationMessages.Clear();
+
+        try
+        {
+            var request = new CreateRfpRequest(
+                Form.CompanyId,
+                Form.Title.Trim(),
+                NullIfWhiteSpace(Form.Description),
+                Form.BudgetMin,
+                Form.BudgetMax,
+                Form.CategoryId,
+                BuildNote(),
+                Form.Type,
+                Form.PrivacyMode,
+                Form.DeadlineDate?.Date.AddHours(17),
+                Form.Items.Select(item => new CreateRfpItemRequest(
+                    item.Name.Trim(),
+                    item.Quantity,
+                    item.Unit.Trim(),
+                    NullIfWhiteSpace(item.Note),
+                    item.Specs
+                        .Where(spec => !string.IsNullOrWhiteSpace(spec.Key))
+                        .Select(spec => new CreateRfpItemSpecRequest(
+                            spec.Key.Trim(),
+                            NullIfWhiteSpace(spec.ValueText),
+                            spec.ValueNumber,
+                            spec.ValueBoolean,
+                            NullIfWhiteSpace(spec.Unit)))
+                        .ToList()))
+                    .ToList(),
+                Form.Attachments
+                    .Where(attachment => !string.IsNullOrWhiteSpace(attachment.FileName) && !string.IsNullOrWhiteSpace(attachment.FileUrl))
+                    .Select(attachment => new CreateRfpAttachmentRequest(attachment.FileName.Trim(), attachment.FileUrl.Trim()))
+                    .ToList());
+
+            var result = await BuyerApi.CreateRfpAsync(request);
+            Navigation.NavigateTo($"/buyer/rfps/{result.Id}");
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ToApiMessage(ex.Error);
+            ValidationMessages = ex.Error.ValidationErrors?
+                .SelectMany(pair => pair.Value.Select(message => $"{pair.Key}: {message}"))
+                .ToList()
+                ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while creating the RFP: {ex.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private void AddItem()
+        => Form.Items.Add(new CreateRfpItemFormModel { Quantity = 1, Unit = "pcs", Specs = { new CreateRfpSpecFormModel() } });
+
+    private void RemoveItem(CreateRfpItemFormModel item)
+    {
+        if (Form.Items.Count == 1)
+        {
+            return;
+        }
+
+        Form.Items.Remove(item);
+    }
+
+    private static void AddSpec(CreateRfpItemFormModel item)
+        => item.Specs.Add(new CreateRfpSpecFormModel());
+
+    private static void RemoveSpec(CreateRfpItemFormModel item, CreateRfpSpecFormModel spec)
+    {
+        if (item.Specs.Count == 1)
+        {
+            return;
+        }
+
+        item.Specs.Remove(spec);
+    }
+
+    private void AddAttachment()
+        => Form.Attachments.Add(new CreateRfpAttachmentFormModel());
+
+    private void RemoveAttachment(CreateRfpAttachmentFormModel attachment)
+        => Form.Attachments.Remove(attachment);
+
+    private string? BuildNote()
+    {
+        var baseNote = NullIfWhiteSpace(Form.Note);
+        if (string.IsNullOrWhiteSpace(Form.AdminUnitCode))
+        {
+            return baseNote;
+        }
+
+        var selectedUnit = AdministrativeUnits.FirstOrDefault(unit => unit.Code == Form.AdminUnitCode);
+        var adminUnitNote = selectedUnit is null
+            ? $"Administrative unit: {Form.AdminUnitCode}"
+            : $"Administrative unit: {selectedUnit.Code} - {selectedUnit.Name}";
+
+        return string.IsNullOrWhiteSpace(baseNote)
+            ? adminUnitNote
+            : $"{baseNote}\n{adminUnitNote}";
+    }
+
+    private static string? NullIfWhiteSpace(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string ToApiMessage(ApiError error)
+        => error.StatusCode switch
+        {
+            HttpStatusCode.NotFound => "The selected company or reference data could not be found.",
+            HttpStatusCode.UnprocessableEntity => "The API rejected the RFP payload. Review the validation details and try again.",
+            _ => error.Message
+        };
+
+    private static string BoolToInput(bool? value)
+        => value switch
+        {
+            true => "true",
+            false => "false",
+            _ => string.Empty
+        };
+
+    private static bool? ParseNullableBool(string? value)
+        => value?.ToLowerInvariant() switch
+        {
+            "true" => true,
+            "false" => false,
+            _ => null
+        };
+
+    private sealed class CreateRfpFormModel
+    {
+        [Range(1, int.MaxValue, ErrorMessage = "Company Id is required")]
+        public int CompanyId { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        public string Description { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Category is required")]
+        public int CategoryId { get; set; }
+
+        public string? AdminUnitCode { get; set; }
+        public decimal? BudgetMin { get; set; }
+        public decimal? BudgetMax { get; set; }
+        public DateTime? DeadlineDate { get; set; } = DateTime.Today.AddDays(14);
+        public string? Note { get; set; }
+        public RfpType Type { get; set; } = RfpType.Standard;
+        public RfpPrivacyMode PrivacyMode { get; set; } = RfpPrivacyMode.Open;
+        public List<CreateRfpItemFormModel> Items { get; } = new();
+        public List<CreateRfpAttachmentFormModel> Attachments { get; } = new();
+    }
+
+    private sealed class CreateRfpItemFormModel
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Range(1, int.MaxValue)]
+        public int Quantity { get; set; }
+
+        [Required]
+        public string Unit { get; set; } = string.Empty;
+
+        public string? Note { get; set; }
+        public List<CreateRfpSpecFormModel> Specs { get; } = new();
+    }
+
+    private sealed class CreateRfpSpecFormModel
+    {
+        public string Key { get; set; } = string.Empty;
+        public string? ValueText { get; set; }
+        public decimal? ValueNumber { get; set; }
+        public bool? ValueBoolean { get; set; }
+        public string? Unit { get; set; }
+    }
+
+    private sealed class CreateRfpAttachmentFormModel
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string FileUrl { get; set; } = string.Empty;
     }
 }

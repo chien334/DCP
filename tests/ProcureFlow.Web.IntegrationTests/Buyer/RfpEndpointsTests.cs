@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using ProcureFlow.Core.Entities;
 using ProcureFlow.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -216,6 +217,55 @@ public class RfpEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     // ── RFP-05: Buyer can view RFP detail ────────────────────────────────────────
+
+    [Fact(DisplayName = "RFP-05 buyer can filter RFP list by status")]
+    public async Task RFP05_ListRfps_CanFilterByStatus()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var companyId = await SeedCompanyAsync(admin);
+        var categoryId = GetSeededCategoryId();
+
+        var draftResponse = await buyer.PostAsJsonAsync("/api/buyer/rfps", new
+        {
+            companyId,
+            title = "Draft RFP",
+            description = "Status filter draft",
+            categoryId,
+            type = 1,
+            privacyMode = 1,
+        });
+        draftResponse.EnsureSuccessStatusCode();
+
+        var closedResponse = await buyer.PostAsJsonAsync("/api/buyer/rfps", new
+        {
+            companyId,
+            title = "Closed RFP",
+            description = "Status filter closed",
+            categoryId,
+            type = 1,
+            privacyMode = 1,
+        });
+        closedResponse.EnsureSuccessStatusCode();
+        var closedId = (await closedResponse.Content.ReadFromJsonAsync<IdPayload>())!.Id;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var closedRfp = await db.Rfps.SingleAsync(r => r.Id == closedId);
+            closedRfp.Status = RfpStatus.Closed;
+            await db.SaveChangesAsync();
+        }
+
+        var response = await buyer.GetAsync($"/api/buyer/rfps?companyId={companyId}&status={(int)RfpStatus.Closed}&page=1&pageSize=10");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<RfpListPayload>();
+        Assert.NotNull(body);
+        Assert.Single(body!.Items);
+        Assert.Equal(closedId, body.Items[0].Id);
+        Assert.Equal((int)RfpStatus.Closed, body.Items[0].Status);
+    }
 
     [Fact(DisplayName = "RFP-05 buyer can view RFP detail with items, specs, attachments")]
     public async Task RFP05_GetRfpDetail_ReturnsFullAggregate()

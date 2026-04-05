@@ -1,75 +1,317 @@
-@page "/buyer/rfps/{RfpId}"
+@page "/buyer/rfps/{RfpId:int}"
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Buyer
+@using ProcureFlow.Web.Endpoints.Vendor
+@inject BuyerApiClient BuyerApi
 
-<PageTitle Title="RFP Details" Subtitle="View items, specs, and vendor responses" />
+<PageHeader Title="RFP Details" Subtitle="View items, specs, and vendor responses" />
 
-<div class="grid grid-3">
+@if (IsLoading)
+{
     <div class="card">
-        <div class="card-header">Status</div>
-        <div style="margin: 1rem 0;">
-            <StatusBadge Status="Created" />
+        <div class="card-header">Loading RFP details</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching RFP, invite, and bid data...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Unable to load RFP</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+            <a href="/buyer/rfps" class="btn btn-secondary">Back to RFPs</a>
+        </div>
+    </div>
+}
+else if (Rfp is not null)
+{
+    <div class="grid grid-3">
+        <div class="card">
+            <div class="card-header">Status</div>
+            <div style="margin: 1rem 0;">
+                <StatusBadge Status="@ToRfpStatusLabel(Rfp.Status)" />
+            </div>
+            <div style="color: var(--gray-700); font-size: 0.9rem;">Deadline: @FormatDateTime(Rfp.Deadline)</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Vendors Invited</div>
+            <div style="font-size: 1.75rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">@Invites.Count</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Bids Received</div>
+            <div style="font-size: 1.75rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">@Bids.Count</div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header">Vendors Invited</div>
-        <div style="font-size: 1.75rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">3</div>
+        <div class="card-header">RFP Overview</div>
+        <div style="display: grid; gap: 0.5rem; margin-top: 1rem; color: var(--gray-800);">
+            <div><strong>Title:</strong> @Rfp.Title</div>
+            <div><strong>Company Id:</strong> @Rfp.CompanyId</div>
+            <div><strong>Category Id:</strong> @Rfp.CategoryId</div>
+            <div><strong>Budget:</strong> @FormatBudget(Rfp.BudgetMin, Rfp.BudgetMax)</div>
+            <div><strong>Created:</strong> @Rfp.CreatedAtUtc.ToLocalTime().ToString("g")</div>
+            <div><strong>Description:</strong> @Rfp.Description</div>
+            @if (!string.IsNullOrWhiteSpace(Rfp.Note))
+            {
+                <div><strong>Note:</strong> @Rfp.Note</div>
+            }
+        </div>
     </div>
 
     <div class="card">
-        <div class="card-header">Bids Received</div>
-        <div style="font-size: 1.75rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">2</div>
+        <div class="card-header">RFP Items & Specs</div>
+        @if (Rfp.Items.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No items were attached to this RFP.</p>
+        }
+        else
+        {
+            <div style="display: grid; gap: 1rem; margin-top: 1rem;">
+                @foreach (var item in Rfp.Items)
+                {
+                    <div style="padding: 1rem; background-color: var(--gray-50); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <div>
+                                <div style="font-weight: 600;">@item.Name</div>
+                                <div style="color: var(--gray-700); font-size: 0.9rem;">@item.Quantity @item.Unit</div>
+                            </div>
+                            <StatusBadge Status="@item.Status.ToString()" />
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(item.Note))
+                        {
+                            <p style="margin: 0.75rem 0 0 0; color: var(--gray-700);">@item.Note</p>
+                        }
+                        @if (item.Specs.Count > 0)
+                        {
+                            <ul style="margin: 0.75rem 0 0 1rem;">
+                                @foreach (var spec in item.Specs)
+                                {
+                                    <li>@spec.Key: @FormatSpec(spec)</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+            </div>
+        }
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header">RFP Items & Specs</div>
-    <div style="padding: 1rem; background-color: var(--gray-50); border-radius: 4px;">
-        <p style="margin: 0; color: var(--gray-700);">
-            (Items and specs from RFP will be displayed here)
-        </p>
+    <div class="card">
+        <div class="card-header">Attachments</div>
+        @if (Rfp.Attachments.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No attachments uploaded for this RFP.</p>
+        }
+        else
+        {
+            <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                @foreach (var attachment in Rfp.Attachments)
+                {
+                    <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                        <span>@attachment.FileName</span>
+                        <a href="@attachment.FileUrl" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Open</a>
+                    </div>
+                }
+            </div>
+        }
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header">Vendor Bids</div>
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Vendor</th>
-                    <th style="text-align: right; padding: 1rem; font-weight: 600;">Total Price</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">TechSupply Inc.</td>
-                    <td style="text-align: right; padding: 1rem;">$45,000</td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <StatusBadge Status="Created" />
-                    </td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <a href="/buyer/bid-comparison/1" class="btn btn-sm btn-primary">Compare</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="card">
+        <div class="card-header">Vendor Invites</div>
+        @if (Invites.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No vendors have been invited yet.</p>
+        }
+        else
+        {
+            <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                @foreach (var invite in Invites)
+                {
+                    <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                        <div>
+                            <div style="font-weight: 600;">Vendor Company @invite.CompanyId</div>
+                            <div style="color: var(--gray-700); font-size: 0.9rem;">Invited @invite.InviteAt.ToLocalTime().ToString("g")</div>
+                        </div>
+                        <StatusBadge Status="@invite.Status.ToString()" />
+                    </div>
+                }
+            </div>
+        }
     </div>
-</div>
 
-<div style="margin-top: 1.5rem;">
-    <a href="/buyer/rfps" class="btn btn-secondary">Back to RFPs</a>
-</div>
+    <div class="card">
+        <div class="card-header">Vendor Bids</div>
+        @if (Bids.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No bids have been submitted for this RFP yet.</p>
+        }
+        else
+        {
+            <div style="overflow-x: auto; margin-top: 1rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                            <th style="text-align: left; padding: 1rem; font-weight: 600;">Vendor</th>
+                            <th style="text-align: right; padding: 1rem; font-weight: 600;">Subtotal</th>
+                            <th style="text-align: right; padding: 1rem; font-weight: 600;">Grand Total</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bid in Bids)
+                        {
+                            <tr style="border-bottom: 1px solid var(--gray-200);">
+                                <td style="padding: 1rem;">Company @bid.CompanyId</td>
+                                <td style="text-align: right; padding: 1rem;">@FormatCurrency(bid.SubTotal, bid.Currency)</td>
+                                <td style="text-align: right; padding: 1rem;">@FormatCurrency(bid.GrandTotal, bid.Currency)</td>
+                                <td style="text-align: center; padding: 1rem;">
+                                    <StatusBadge Status="@ToBidStatusLabel(bid.Status)" />
+                                </td>
+                                <td style="text-align: center; padding: 1rem;">
+                                    @if (CanFinalize)
+                                    {
+                                        <a href="/buyer/rfps/@RfpId/finalize" class="btn btn-sm btn-primary">Review</a>
+                                    }
+                                    else if (Contract is not null)
+                                    {
+                                        <a href="/buyer/contracts/@Contract.Id" class="btn btn-sm btn-secondary">Contract</a>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: var(--gray-700);">Closed</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="/buyer/rfps" class="btn btn-secondary">Back to RFPs</a>
+        @if (CanFinalize)
+        {
+            <a href="/buyer/rfps/@RfpId/finalize" class="btn btn-primary">Finalize Winning Bid</a>
+        }
+        else if (Contract is not null)
+        {
+            <a href="/buyer/contracts/@Contract.Id" class="btn btn-primary">Open Contract</a>
+        }
+        else if (Rfp.Status == (int)RfpStatus.Closed)
+        {
+            <a href="/buyer/rfps/@RfpId/contract" class="btn btn-primary">Create Contract</a>
+        }
+    </div>
+}
 
 @code {
     [Parameter]
-    public string RfpId { get; set; } = string.Empty;
+    public int RfpId { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    private bool IsLoading = true;
+    private string? ErrorMessage;
+    private RfpDetailResponse? Rfp;
+    private ContractDetailResponse? Contract;
+    private List<VendorInviteDto> Invites = new();
+    private List<BidListItem> Bids = new();
+
+    private bool CanFinalize => Rfp is not null && Rfp.Status != (int)RfpStatus.Closed && Bids.Any(bid => bid.Status == (int)RfpBidStatus.Submitted);
+
+    protected override async Task OnParametersSetAsync()
     {
-        // TODO: Load RFP details from API: /api/buyer/rfps/{rfpId}
-        await Task.CompletedTask;
+        await LoadAsync();
     }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var rfpTask = BuyerApi.GetRfpDetailAsync(RfpId);
+            var invitesTask = BuyerApi.GetRfpInvitesAsync(RfpId);
+            var bidsTask = BuyerApi.GetRfpBidsAsync(RfpId);
+            var contractTask = BuyerApi.TryGetContractByRfpAsync(RfpId);
+
+            await Task.WhenAll(rfpTask, invitesTask, bidsTask, contractTask);
+
+            Rfp = await rfpTask;
+            Invites = (await invitesTask).OrderByDescending(invite => invite.InviteAt).ToList();
+            Bids = (await bidsTask).OrderByDescending(bid => bid.GrandTotal).ToList();
+            Contract = await contractTask;
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading the RFP detail: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private static string FormatBudget(decimal? min, decimal? max)
+    {
+        if (min is null && max is null)
+        {
+            return "Not set";
+        }
+
+        if (min is not null && max is not null)
+        {
+            return $"{min:N0} - {max:N0}";
+        }
+
+        return min is not null ? $"From {min:N0}" : $"Up to {max:N0}";
+    }
+
+    private static string FormatCurrency(decimal amount, string currency)
+        => $"{amount:N0} {currency}";
+
+    private static string FormatDateTime(DateTime? value)
+        => value?.ToLocalTime().ToString("g") ?? "Open";
+
+    private static string FormatSpec(RfpItemSpecDto spec)
+    {
+        if (!string.IsNullOrWhiteSpace(spec.ValueText))
+        {
+            return spec.ValueText;
+        }
+
+        if (spec.ValueNumber is not null)
+        {
+            return spec.Unit is null ? spec.ValueNumber.Value.ToString("N2") : $"{spec.ValueNumber:N2} {spec.Unit}";
+        }
+
+        if (spec.ValueBoolean is not null)
+        {
+            return spec.ValueBoolean.Value ? "Yes" : "No";
+        }
+
+        return spec.Unit ?? "Not provided";
+    }
+
+    private static string ToRfpStatusLabel(int status)
+        => status switch
+        {
+            (int)RfpStatus.Closed => "Finalized",
+            (int)RfpStatus.Canceled => "Declined",
+            _ => ((RfpStatus)status).ToString()
+        };
+
+    private static string ToBidStatusLabel(int status)
+        => ((RfpBidStatus)status).ToString();
 }

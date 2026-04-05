@@ -25,13 +25,13 @@ public static class RfpFinalizeEndpoints
         if (rfp is null)
             return Results.NotFound(new { code = "RFP_NOT_FOUND" });
 
-        if (rfp.Status is RfpStatus.Canceled or RfpStatus.Closed)
-            return Results.Conflict(new { code = "RFP_STATUS_NOT_ALLOWED" });
-
         var existingFinalize = await dbContext.RfpFinalizes
             .AnyAsync(f => f.RfpId == rfpId, cancellationToken);
         if (existingFinalize)
             return Results.Conflict(new { code = "RFP_ALREADY_FINALIZED" });
+
+        if (rfp.Status is RfpStatus.Canceled or RfpStatus.Closed)
+            return Results.Conflict(new { code = "RFP_STATUS_NOT_ALLOWED" });
 
         var winningBid = await dbContext.RfpBids
             .Include(b => b.Items)
