@@ -11,6 +11,7 @@ public static class RfpContractEndpoints
     {
         group.MapPost("/rfps/{rfpId:int}/contract", CreateContractAsync);
         group.MapGet("/rfps/{rfpId:int}/contract", GetContractByRfpAsync);
+        group.MapGet("/contracts/{contractId:int}", GetContractByIdAsync);
         group.MapPost("/contracts/{contractId:int}/sign", BuyerSignContractAsync);
         return group;
     }
@@ -80,6 +81,7 @@ public static class RfpContractEndpoints
         CancellationToken cancellationToken)
     {
         var contract = await dbContext.RfpContracts
+            .Include(c => c.RfpFinalize)
             .FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken);
         if (contract is null)
             return Results.NotFound(new { code = "CONTRACT_NOT_FOUND" });
@@ -103,10 +105,26 @@ public static class RfpContractEndpoints
         return Results.Ok(ToResponse(contract));
     }
 
+    private static async Task<IResult> GetContractByIdAsync(
+        [FromRoute] int contractId,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var contract = await dbContext.RfpContracts.AsNoTracking()
+            .Include(c => c.RfpFinalize)
+            .FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken);
+
+        if (contract is null)
+            return Results.NotFound(new { code = "CONTRACT_NOT_FOUND" });
+
+        return Results.Ok(ToResponse(contract));
+    }
+
     private static ContractDetailResponse ToResponse(RfpContract contract)
         => new(
             contract.Id,
             contract.RfpFinalizeId,
+            contract.RfpFinalize.RfpId,
             contract.ContractNo,
             contract.Title,
             contract.FileUrl,
@@ -129,6 +147,7 @@ public sealed record BuyerSignContractRequest(string? Note);
 public sealed record ContractDetailResponse(
     int Id,
     int RfpFinalizeId,
+    int RfpId,
     string ContractNo,
     string Title,
     string FileUrl,

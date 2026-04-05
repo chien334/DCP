@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ProcureFlow.Infrastructure.Data;
+using ProcureFlow.Web.Services.Api;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,6 +71,24 @@ public class RbacAndAuditTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var client = CreateClient(role: "Vendor", userId: "vendor-01");
         var response = await client.GetAsync("/api/master-data/categories");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "AUD-02 buyer is denied vendor invites endpoint — returns 403")]
+    public async Task AUD02_BuyerDeniedVendorInvites_Returns403()
+    {
+        var client = CreateClient(role: "Buyer", userId: "buyer-01");
+        var response = await client.GetAsync("/api/vendor/invites");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "AUD-02 vendor is denied buyer contracts endpoint — returns 403")]
+    public async Task AUD02_VendorDeniedBuyerContracts_Returns403()
+    {
+        var client = CreateClient(role: "Vendor", userId: "vendor-01");
+        var response = await client.GetAsync("/api/buyer/contracts/1");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -158,6 +177,17 @@ public class RbacAndAuditTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(creatorId, company.CreatedBy);  // unchanged
         Assert.Equal(updaterId, company.UpdatedBy);  // stamped by interceptor
         Assert.True(company.UpdatedAtUtc > company.CreatedAtUtc);
+    }
+
+    [Fact(DisplayName = "API-01 typed API clients are resolvable from DI")]
+    public void API01_ApiClientsResolvableFromDi()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
+        Assert.NotNull(services.GetService<BuyerApiClient>());
+        Assert.NotNull(services.GetService<VendorApiClient>());
+        Assert.NotNull(services.GetService<MasterDataApiClient>());
     }
 }
 

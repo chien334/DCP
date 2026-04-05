@@ -9,9 +9,45 @@ public static class VendorContractEndpoints
 {
     public static RouteGroupBuilder MapVendorContractEndpoints(this RouteGroupBuilder group)
     {
+        group.MapGet("/contracts/{contractId:int}", GetVendorContractAsync);
         group.MapPost("/contracts/{contractId:int}/sign", VendorSignContractAsync);
         group.MapPost("/contracts/{contractId:int}/decline", VendorDeclineContractAsync);
         return group;
+    }
+
+    private static async Task<IResult> GetVendorContractAsync(
+        [FromRoute] int contractId,
+        [FromQuery] int companyId,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var contract = await dbContext.RfpContracts.AsNoTracking()
+            .Include(c => c.RfpFinalize)
+            .FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken);
+
+        if (contract is null)
+            return Results.NotFound(new { code = "CONTRACT_NOT_FOUND" });
+
+        if (contract.RfpFinalize.CompanyId != companyId)
+            return Results.Forbid();
+
+        return Results.Ok(new VendorContractDetailResponse(
+            contract.Id,
+            contract.RfpFinalizeId,
+            contract.RfpFinalize.RfpId,
+            contract.ContractNo,
+            contract.Title,
+            contract.FileUrl,
+            contract.BuyerSign,
+            contract.BuyerSignAt,
+            contract.VendorSign,
+            contract.VendorSignAt,
+            contract.Note,
+            (int)contract.Status,
+            contract.CreatedAtUtc,
+            contract.CreatedBy,
+            contract.UpdatedAtUtc,
+            contract.UpdatedBy));
     }
 
     private static async Task<IResult> VendorSignContractAsync(
@@ -80,3 +116,21 @@ public static class VendorContractEndpoints
 }
 
 public sealed record VendorActionRequest(int CompanyId, string? Note);
+
+public sealed record VendorContractDetailResponse(
+    int Id,
+    int RfpFinalizeId,
+    int RfpId,
+    string ContractNo,
+    string Title,
+    string FileUrl,
+    bool BuyerSign,
+    DateTime? BuyerSignAt,
+    bool VendorSign,
+    DateTime? VendorSignAt,
+    string? Note,
+    int Status,
+    DateTime CreatedAtUtc,
+    string CreatedBy,
+    DateTime UpdatedAtUtc,
+    string UpdatedBy);

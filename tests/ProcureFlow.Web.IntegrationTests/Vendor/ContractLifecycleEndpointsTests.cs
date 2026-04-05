@@ -287,4 +287,87 @@ public class ContractLifecycleEndpointsTests : IClassFixture<WebApplicationFacto
         var response = await vendor.PostAsJsonAsync($"/api/vendor/contracts/{contractId}/sign", new { companyId = 999999, note = "Invalid company" });
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact(DisplayName = "FIN-03 buyer can load contract by contractId")]
+    public async Task FIN03_BuyerCanLoadContractByContractId()
+    {
+        var buyer = CreateBuyerClient();
+        var (rfpId, _) = await SeedFinalizedRfpAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/contract", new { contractNo = "CT-0008" });
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var contractId = await db.RfpContracts.Select(c => c.Id).SingleAsync();
+
+        var response = await buyer.GetAsync($"/api/buyer/contracts/{contractId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(contractId, body.GetProperty("id").GetInt32());
+        Assert.Equal(rfpId, body.GetProperty("rfpId").GetInt32());
+    }
+
+    [Fact(DisplayName = "FIN-05 vendor can load contract detail endpoint")]
+    public async Task FIN05_VendorCanLoadContractDetail()
+    {
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+        var (rfpId, vendorCompanyId) = await SeedFinalizedRfpAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/contract", new { contractNo = "CT-0009" });
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var contractId = await db.RfpContracts.Select(c => c.Id).SingleAsync();
+
+        var response = await vendor.GetAsync($"/api/vendor/contracts/{contractId}?companyId={vendorCompanyId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(contractId, body.GetProperty("id").GetInt32());
+        Assert.Equal(rfpId, body.GetProperty("rfpId").GetInt32());
+    }
+
+    [Fact(DisplayName = "FIN-01 finalized bid cannot be updated returns 409")]
+    public async Task FIN01_FinalizedBidCannotBeUpdated_Returns409()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var vendorCompanyId = await SeedCompanyAsync(admin, "Vendor");
+        var (rfpId, rfpItemId) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+        var bidId = await InviteAndCreateBidAsync(buyer, vendor, rfpId, vendorCompanyId, rfpItemId);
+
+        var finalizeResp = await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/finalize", new { rfpBidId = bidId });
+        Assert.Equal(HttpStatusCode.Created, finalizeResp.StatusCode);
+
+        var updateResp = await vendor.PutAsJsonAsync($"/api/vendor/bids/{bidId}", new
+        {
+            companyId = vendorCompanyId,
+            vatRate = 12.0m,
+            subTotal = 120000m,
+            grandTotal = 134400m,
+            currency = "VND",
+            proposal = "Late update",
+            privacyMode = 1,
+            items = new[]
+            {
+                new
+                {
+                    rfpItemId,
+                    brand = "Acer",
+                    quantity = 10,
+                    unitPrice = 12000m,
+                    totalPrice = 120000m,
+                    note = "Late",
+                    specs = Array.Empty<object>()
+                }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, updateResp.StatusCode);
+    }
 }

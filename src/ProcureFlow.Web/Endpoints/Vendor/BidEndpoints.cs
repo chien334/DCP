@@ -12,6 +12,7 @@ public static class BidEndpoints
         group.MapPost("/bids", CreateBidAsync);
         group.MapGet("/bids", ListMyBidsAsync);
         group.MapGet("/bids/{bidId:int}", GetBidDetailAsync);
+        group.MapPut("/bids/{bidId:int}", UpdateBidAsync);
         return group;
     }
 
@@ -185,6 +186,99 @@ public static class BidEndpoints
 
         return Results.Ok(detail);
     }
+
+    // ── PUT /api/vendor/bids/{bidId} ─────────────────────────────────────────────
+
+    private static async Task<IResult> UpdateBidAsync(
+        [FromRoute] int bidId,
+        [FromBody] UpdateBidRequest request,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var bid = await dbContext.RfpBids
+            .Include(b => b.Items)
+            .ThenInclude(i => i.Specs)
+            .FirstOrDefaultAsync(b => b.Id == bidId, cancellationToken);
+
+        if (bid is null)
+            return Results.NotFound(new { code = "BID_NOT_FOUND" });
+
+        if (bid.CompanyId != request.CompanyId)
+            return Results.Forbid();
+
+        if (bid.Status != RfpBidStatus.Submitted)
+            return Results.UnprocessableEntity(new { code = "BID_STATUS_NOT_ALLOWED" });
+
+        var finalized = await dbContext.RfpFinalizes
+            .AnyAsync(f => f.RfpBidId == bid.Id || f.RfpId == bid.RfpId, cancellationToken);
+        if (finalized)
+            return Results.Conflict(new { code = "BID_ALREADY_FINALIZED" });
+
+        if (request.Items is { Count: > 0 })
+        {
+            var rfpItemIds = request.Items.Select(i => i.RfpItemId).Distinct().ToList();
+            var validItemIds = await dbContext.RfpItems
+                .Where(i => i.RfpId == bid.RfpId && rfpItemIds.Contains(i.Id))
+                .Select(i => i.Id)
+                .ToListAsync(cancellationToken);
+
+            var invalidIds = rfpItemIds.Except(validItemIds).ToList();
+            if (invalidIds.Count > 0)
+                return Results.UnprocessableEntity(new { code = "INVALID_RFP_ITEMS", invalidIds });
+        }
+
+        bid.VatRate = request.VatRate;
+        bid.SubTotal = request.SubTotal;
+        bid.GrandTotal = request.GrandTotal;
+        bid.Currency = (request.Currency ?? bid.Currency).Trim();
+        bid.Proposal = request.Proposal?.Trim();
+        bid.PrivacyMode = request.PrivacyMode;
+
+        var existingSpecs = bid.Items.SelectMany(i => i.Specs).ToList();
+        dbContext.RfpBidItemSpecs.RemoveRange(existingSpecs);
+        dbContext.RfpBidItems.RemoveRange(bid.Items);
+
+        if (request.Items is { Count: > 0 })
+        {
+            foreach (var itemReq in request.Items)
+            {
+                var bidItem = new RfpBidItem
+                {
+                    RfpBidId = bid.Id,
+                    RfpItemId = itemReq.RfpItemId,
+                    CompanyId = request.CompanyId,
+                    Brand = (itemReq.Brand ?? string.Empty).Trim(),
+                    Quantity = itemReq.Quantity,
+                    UnitPrice = itemReq.UnitPrice,
+                    TotalPrice = itemReq.TotalPrice,
+                    Currency = (request.Currency ?? bid.Currency).Trim(),
+                    Note = itemReq.Note?.Trim(),
+                    Status = RfpBidItemStatus.Active,
+                };
+
+                if (itemReq.Specs is { Count: > 0 })
+                {
+                    foreach (var specReq in itemReq.Specs)
+                    {
+                        bidItem.Specs.Add(new RfpBidItemSpec
+                        {
+                            Key = specReq.Key.Trim(),
+                            ValueText = specReq.ValueText?.Trim(),
+                            ValueNumber = specReq.ValueNumber,
+                            ValueBoolean = specReq.ValueBoolean,
+                            Unit = specReq.Unit?.Trim(),
+                            Status = RfpBidItemSpecStatus.Active,
+                        });
+                    }
+                }
+
+                bid.Items.Add(bidItem);
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Results.Ok(new { bid.Id });
+    }
 }
 
 // ── Request DTOs ──────────────────────────────────────────────────────────────
@@ -204,6 +298,16 @@ public sealed record CreateBidItemRequest(
 
 public sealed record CreateBidItemSpecRequest(
     string Key, string? ValueText, decimal? ValueNumber, bool? ValueBoolean, string? Unit);
+
+public sealed record UpdateBidRequest(
+    int CompanyId,
+    decimal VatRate,
+    decimal SubTotal,
+    decimal GrandTotal,
+    string? Currency,
+    string? Proposal,
+    RfpBidPrivacyMode PrivacyMode,
+    List<CreateBidItemRequest>? Items);
 
 // ── Response DTOs ─────────────────────────────────────────────────────────────
 

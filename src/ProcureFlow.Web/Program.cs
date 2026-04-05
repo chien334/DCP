@@ -11,6 +11,7 @@ using ProcureFlow.Web.Endpoints.Vendor;
 using ProcureFlow.Web.Security;
 using ProcureFlow.Web.Middleware;
 using ProcureFlow.Web.Components;
+using ProcureFlow.Web.Services.Api;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -35,6 +36,18 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
 	.AddInteractiveServerComponents();
+builder.Services.AddScoped(sp =>
+{
+	var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+	var request = accessor.HttpContext?.Request;
+	var baseUri = request is null
+		? "http://localhost"
+		: $"{request.Scheme}://{request.Host}";
+	return new HttpClient { BaseAddress = new Uri(baseUri) };
+});
+builder.Services.AddScoped<BuyerApiClient>();
+builder.Services.AddScoped<VendorApiClient>();
+builder.Services.AddScoped<MasterDataApiClient>();
 builder.Services.AddAuthentication(HeaderAuthenticationHandler.SchemeName)
 	.AddScheme<AuthenticationSchemeOptions, HeaderAuthenticationHandler>(HeaderAuthenticationHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
@@ -77,6 +90,7 @@ buyerGroup.MapRfpContractEndpoints();
 
 var vendorGroup = app.MapGroup("/api/vendor")
 	.RequireAuthorization(policy => policy.RequireRole("Admin", "Vendor"));
+vendorGroup.MapVendorPortalInviteEndpoints();
 vendorGroup.MapBidEndpoints();
 vendorGroup.MapVendorContractEndpoints();
 

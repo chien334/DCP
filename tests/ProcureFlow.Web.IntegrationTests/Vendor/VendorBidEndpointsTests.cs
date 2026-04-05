@@ -277,6 +277,144 @@ public class VendorBidEndpointsTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
+    [Fact(DisplayName = "BID-01 vendor can update bid via PUT")]
+    public async Task BID01_VendorCanUpdateBid()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var vendorCompanyId = await SeedCompanyAsync(admin, "Vendor");
+        var (rfpId, rfpItemId) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/invites", new { companyId = vendorCompanyId });
+
+        var createResponse = await vendor.PostAsJsonAsync("/api/vendor/bids", new
+        {
+            rfpId,
+            companyId = vendorCompanyId,
+            vatRate = 10.0m,
+            subTotal = 100000m,
+            grandTotal = 110000m,
+            privacyMode = 1,
+            items = new[]
+            {
+                new
+                {
+                    rfpItemId,
+                    brand = "Dell",
+                    quantity = 10,
+                    unitPrice = 10000m,
+                    totalPrice = 100000m,
+                    note = (string?)null,
+                    specs = Array.Empty<object>()
+                }
+            }
+        });
+
+        var createBody = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var bidId = createBody.GetProperty("id").GetInt32();
+
+        var updateResponse = await vendor.PutAsJsonAsync($"/api/vendor/bids/{bidId}", new
+        {
+            companyId = vendorCompanyId,
+            vatRate = 8.0m,
+            subTotal = 120000m,
+            grandTotal = 129600m,
+            currency = "VND",
+            proposal = "Updated proposal",
+            privacyMode = 1,
+            items = new[]
+            {
+                new
+                {
+                    rfpItemId,
+                    brand = "Lenovo",
+                    quantity = 10,
+                    unitPrice = 12000m,
+                    totalPrice = 120000m,
+                    note = "Updated item",
+                    specs = Array.Empty<object>()
+                }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        var detailResponse = await vendor.GetAsync($"/api/vendor/bids/{bidId}");
+        var detail = await detailResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(129600m, detail.GetProperty("grandTotal").GetDecimal());
+        Assert.Equal("Updated proposal", detail.GetProperty("proposal").GetString());
+        Assert.Equal("Lenovo", detail.GetProperty("items")[0].GetProperty("brand").GetString());
+    }
+
+    [Fact(DisplayName = "BID-01 update returns 422 for invalid RFP item")]
+    public async Task BID01_UpdateReturns422ForInvalidRfpItem()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var vendorCompanyId = await SeedCompanyAsync(admin, "Vendor");
+        var (rfpId, rfpItemId) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/invites", new { companyId = vendorCompanyId });
+
+        var createResponse = await vendor.PostAsJsonAsync("/api/vendor/bids", new
+        {
+            rfpId,
+            companyId = vendorCompanyId,
+            vatRate = 10.0m,
+            subTotal = 100000m,
+            grandTotal = 110000m,
+            privacyMode = 1,
+            items = new[]
+            {
+                new
+                {
+                    rfpItemId,
+                    brand = "Dell",
+                    quantity = 10,
+                    unitPrice = 10000m,
+                    totalPrice = 100000m,
+                    note = (string?)null,
+                    specs = Array.Empty<object>()
+                }
+            }
+        });
+
+        var createBody = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var bidId = createBody.GetProperty("id").GetInt32();
+
+        var updateResponse = await vendor.PutAsJsonAsync($"/api/vendor/bids/{bidId}", new
+        {
+            companyId = vendorCompanyId,
+            vatRate = 8.0m,
+            subTotal = 120000m,
+            grandTotal = 129600m,
+            currency = "VND",
+            proposal = "Updated proposal",
+            privacyMode = 1,
+            items = new[]
+            {
+                new
+                {
+                    rfpItemId = 999999,
+                    brand = "Lenovo",
+                    quantity = 10,
+                    unitPrice = 12000m,
+                    totalPrice = 120000m,
+                    note = "Invalid mapping",
+                    specs = Array.Empty<object>()
+                }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, updateResponse.StatusCode);
+    }
+
     // ── BID-02/03: Bid detail with items and specs ──────────────────────────────
 
     [Fact(DisplayName = "BID-02 vendor can get bid detail with items and specs")]
