@@ -28,7 +28,8 @@ This roadmap delivers an end-to-end source-to-contract platform in six phases: f
 - [x] **Phase 4: Buyer Bid Review And Comparison** - Compare bids against RFP requirements and retrieve decision context.
 - [x] **Phase 5: Finalization Workflow** - Select winning bid and lock finalized pricing snapshot.
 - [x] **Phase 6: Contract Lifecycle And Signatures** - Create contract, sign/decline flow, final legal status tracking.
-- [ ] **Phase 7: Buyer And Vendor UI And Dashboards** - Blazor components, buyer/vendor workflows, and role-based dashboards.
+- [x] **Phase 7: Buyer And Vendor UI And Dashboards** - Blazor components, buyer/vendor workflows, and role-based dashboards.
+- [ ] **Phase 8: API Integration And Data Loading** - Wire buyer/vendor UI with live APIs and close remaining endpoint contracts.
 
 ## Phase Details
 
@@ -131,9 +132,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Implement Blazor component foundation and shared UI patterns.
-- [ ] 07-02: Implement buyer dashboard and RFP/finalize/contract workflows.
-- [ ] 07-03: Implement vendor dashboard and bid submission/contract signing workflows.
+- [x] 07-01: Implement Blazor component foundation and shared UI patterns.
+- [x] 07-02: Implement buyer dashboard and RFP/finalize/contract workflows.
+- [x] 07-03: Implement vendor dashboard and bid submission/contract signing workflows.
 
 ## Progress
 
@@ -145,14 +146,17 @@ Plans:
 | 4. Buyer Bid Review And Comparison | 2/2 | Complete | 2026-04-05 |
 | 5. Finalization Workflow | 2/2 | Complete | 2026-04-05 |
 | 6. Contract Lifecycle And Signatures | 3/3 | Complete | 2026-04-05 |
-| 7. Buyer And Vendor UI And Dashboards | 0/3 | Not started | - |
+| 7. Buyer And Vendor UI And Dashboards | 3/3 | Complete | 2026-04-05 |
+| 8. API Integration And Data Loading | 0/3 | Planned | - |
 
 ### Phase 8: API Integration And Data Loading
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal**: Integrate buyer/vendor UI pages with live APIs, close missing endpoint contracts, and enforce role-safe workflow transitions across RFP, bid, finalize, and contract flows.
+**Requirements**: API-01, API-02, API-03, API-04, API-05
 **Depends on:** Phase 7
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 8 to break down)
+- [ ] 08-01-PLAN.md - Integration foundation and API contract closure.
+- [ ] 08-02-PLAN.md - Buyer workflow API wiring and data loading.
+- [ ] 08-03-PLAN.md - Vendor workflow API wiring and contract lifecycle integration.

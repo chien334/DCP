@@ -63,13 +63,21 @@
 
 ### User Interface And Experience
 
-- [ ] **UI-01**: Blazor layout and navigation components render with consistent styling.
-- [ ] **UI-02**: Shared components (StatusBadge, PageTitle, FormSection) are reusable across workflows.
-- [ ] **UI-03**: Buyer dashboard displays RFP status summary and recent activity.
-- [ ] **UI-04**: Buyer can create, list, and detail RFPs through form und list UI.
-- [ ] **UI-05**: Buyer can finalize winning bid and sign contract through modal and form UI.
-- [ ] **UI-06**: Vendor dashboard displays pending invites and bid status.
-- [ ] **UI-07**: Vendor can accept invites, submit bids, and sign or decline contracts through UI.
+- [x] **UI-01**: Blazor layout and navigation components render with consistent styling.
+- [x] **UI-02**: Shared components (for example StatusBadge and role-based navigation) are reusable across workflows.
+- [x] **UI-03**: Buyer dashboard displays RFP status summary and recent activity.
+- [x] **UI-04**: Buyer can create, list, and detail RFPs through form and list UI.
+- [x] **UI-05**: Buyer can finalize winning bid and sign contract through modal and form UI.
+- [x] **UI-06**: Vendor dashboard displays pending invites and bid status.
+- [x] **UI-07**: Vendor can accept invites, submit bids, and sign or decline contracts through UI.
+
+### API Integration And Data Loading
+
+- [ ] **API-01**: UI pages consume typed API clients with standardized error handling and loading states.
+- [ ] **API-02**: Missing vendor and buyer API contracts are available and role-guarded for UI workflows.
+- [ ] **API-03**: Buyer pages load live data and execute create/finalize/contract actions against backend APIs.
+- [ ] **API-04**: Buyer workflow transitions handle conflict/validation responses (for example 409/422) predictably.
+- [ ] **API-05**: Vendor pages load live data and execute invite, bid, and contract sign/decline actions with role-safe behavior.
 
 ## v2 Requirements
 
@@ -129,21 +137,26 @@
 | AUD-02 | Phase 1 | Complete |
 | AUD-03 | Phase 5 | Complete |
 | AUD-04 | Phase 2 | Complete |
-| UI-01 | Phase 7 | Pending |
-| UI-02 | Phase 7 | Pending |
-| UI-03 | Phase 7 | Pending |
-| UI-04 | Phase 7 | Pending |
-| UI-05 | Phase 7 | Pending |
-| UI-06 | Phase 7 | Pending |
-| UI-07 | Phase 7 | Pending |
+| UI-01 | Phase 7 | Complete |
+| UI-02 | Phase 7 | Complete |
+| UI-03 | Phase 7 | Complete |
+| UI-04 | Phase 7 | Complete |
+| UI-05 | Phase 7 | Complete |
+| UI-06 | Phase 7 | Complete |
+| UI-07 | Phase 7 | Complete |
+| API-01 | Phase 8 | Pending |
+| API-02 | Phase 8 | Pending |
+| API-03 | Phase 8 | Pending |
+| API-04 | Phase 8 | Pending |
+| API-05 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 36 total
-- Mapped to phases: 36
+- v1 requirements: 41 total
+- Mapped to phases: 41
 - Unmapped: 0
-- Complete: 29
-- Pending: 7
+- Complete: 36
+- Pending: 5
 
 ---
 *Requirements defined: 2026-04-04*
-*Last updated: 2026-04-05 after adding Phase 7 UI/UX planning*
+*Last updated: 2026-04-05 after Phase 8 API integration planning*
