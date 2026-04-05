@@ -1,0 +1,69 @@
+@page "/vendor/bids/{BidId}/edit"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="Edit Bid" Subtitle="Update your pricing and response details" />
+
+<div class="card" style="max-width: 900px;">
+    <div class="card-header">Update Your Bid</div>
+    
+    <div style="overflow-x: auto; margin-top: 1rem;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Item</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Your Price</th>
+                    <th style="text-align: right; padding: 1rem; font-weight: 600;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">Laptops - High Performance</td>
+                    <td style="padding: 1rem;"><input type="number" class="form-control" value="500" style="width: 150px;" /></td>
+                    <td style="text-align: right; padding: 1rem;">$25,000</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">Monitors - 27-inch</td>
+                    <td style="padding: 1rem;"><input type="number" class="form-control" value="1000" style="width: 150px;" /></td>
+                    <td style="text-align: right; padding: 1rem;">$20,000</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 1.5rem; background-color: var(--gray-50); padding: 1rem; border-radius: 4px; text-align: right;">
+        <p style="margin: 0; font-size: 1.1rem;">
+            <strong>New Total:</strong> <span style="color: var(--primary-color); font-size: 1.3rem;">$45,000</span>
+        </p>
+    </div>
+
+    <div class="form-group" style="margin-top: 1.5rem;">
+        <label class="form-label">Notes / Terms</label>
+        <textarea class="form-control" rows="4">30-day warranty, free delivery, payment terms - Net 30</textarea>
+    </div>
+
+    <p style="color: var(--gray-700); margin: 1rem 0; font-size: 0.9rem;">
+        <strong>Note:</strong> You can edit your bid until the deadline. After finalization, changes are not allowed.
+    </p>
+
+    <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+        <a href="/vendor/bids" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string BidId { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load bid from /api/vendor/bids/{bidId}
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleUpdate()
+    {
+        // TODO: PUT bid to /api/vendor/bids/{bidId}
+        await Task.CompletedTask;
+    }
+}

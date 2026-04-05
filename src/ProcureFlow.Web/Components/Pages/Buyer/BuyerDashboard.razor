@@ -1,0 +1,56 @@
+@page "/buyer/dashboard"
+@using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Core.Entities
+
+<PageTitle Title="Buyer Dashboard" Subtitle="Monitor your RFP and contract workflow" />
+
+<div class="grid grid-3">
+    <div class="card">
+        <div class="card-header">Active RFPs</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
+            @RfpCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">RFPs in progress</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Pending Bids</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
+            @PendingBidCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">Awaiting vendor responses</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Contracts</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
+            @SignedContractCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">Fully signed</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Recent Activity</div>
+    <div style="padding: 1rem; color: var(--gray-700);">
+        <p>Latest RFPs and bids will appear here.</p>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="/buyer/rfps" class="btn btn-primary">
+        View All RFPs
+    </a>
+</div>
+
+@code {
+    private int RfpCount = 5;
+    private int PendingBidCount = 3;
+    private int SignedContractCount = 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load dashboard metrics from API
+        await Task.CompletedTask;
+    }
+}

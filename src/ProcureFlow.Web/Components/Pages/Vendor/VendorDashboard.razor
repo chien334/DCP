@@ -1,0 +1,57 @@
+@page "/vendor/dashboard"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="Vendor Dashboard" Subtitle="Manage RFP invites, bids, and contracts" />
+
+<div class="grid grid-3">
+    <div class="card">
+        <div class="card-header">Pending Invites</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
+            @PendingInviteCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">Awaiting your response</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Active Bids</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
+            @ActiveBidCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">Submitted and pending outcome</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Signed Contracts</div>
+        <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
+            @SignedContractCount
+        </div>
+        <p style="margin: 0; color: var(--gray-700);">Ready to execute</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Action Items</div>
+    <ul style="margin: 0; padding-left: 1.5rem; color: var(--gray-700);">
+        <li style="margin: 0.5rem 0;">Respond to 2 pending RFP invites</li>
+        <li style="margin: 0.5rem 0;">Review bid comparison results</li>
+        <li style="margin: 0.5rem 0;">Sign 1 pending contract from buyer</li>
+    </ul>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="/vendor/invites" class="btn btn-primary">
+        View Pending Invites
+    </a>
+</div>
+
+@code {
+    private int PendingInviteCount = 2;
+    private int ActiveBidCount = 4;
+    private int SignedContractCount = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load vendor dashboard from API
+        await Task.CompletedTask;
+    }
+}

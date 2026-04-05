@@ -1,0 +1,75 @@
+@page "/buyer/rfps/{RfpId}"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="RFP Details" Subtitle="View items, specs, and vendor responses" />
+
+<div class="grid grid-3">
+    <div class="card">
+        <div class="card-header">Status</div>
+        <div style="margin: 1rem 0;">
+            <StatusBadge Status="Created" />
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Vendors Invited</div>
+        <div style="font-size: 1.75rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">3</div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Bids Received</div>
+        <div style="font-size: 1.75rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">2</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">RFP Items & Specs</div>
+    <div style="padding: 1rem; background-color: var(--gray-50); border-radius: 4px;">
+        <p style="margin: 0; color: var(--gray-700);">
+            (Items and specs from RFP will be displayed here)
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Vendor Bids</div>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Vendor</th>
+                    <th style="text-align: right; padding: 1rem; font-weight: 600;">Total Price</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">TechSupply Inc.</td>
+                    <td style="text-align: right; padding: 1rem;">$45,000</td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <StatusBadge Status="Created" />
+                    </td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <a href="/buyer/bid-comparison/1" class="btn btn-sm btn-primary">Compare</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="/buyer/rfps" class="btn btn-secondary">Back to RFPs</a>
+</div>
+
+@code {
+    [Parameter]
+    public string RfpId { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load RFP details from API: /api/buyer/rfps/{rfpId}
+        await Task.CompletedTask;
+    }
+}

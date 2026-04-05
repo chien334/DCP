@@ -1,0 +1,65 @@
+@page "/buyer/rfps/{RfpId}/finalize"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="Finalize RFP" Subtitle="Select winning bid and lock pricing" />
+
+<div class="card" style="max-width: 800px;">
+    <div class="card-header">Select Winning Bid</div>
+    
+    <div style="margin: 1.5rem 0;">
+        <p style="color: var(--gray-700); margin: 0 0 1rem 0;">
+            Choose the best bid for finalization. Once finalized, the pricing becomes locked.
+        </p>
+
+        <div style="background-color: var(--gray-50); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                <input type="radio" name="bid-selection" value="1" id="bid-1" checked />
+                <label for="bid-1" style="cursor: pointer; flex: 1;">
+                    <strong>TechSupply Inc.</strong> - $45,000
+                    <br /><span style="color: var(--gray-700); font-size: 0.9rem;">Fast delivery, 30-day warranty</span>
+                </label>
+            </div>
+        </div>
+
+        <div style="background-color: var(--gray-50); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                <input type="radio" name="bid-selection" value="2" id="bid-2" />
+                <label for="bid-2" style="cursor: pointer; flex: 1;">
+                    <strong>Global Tech Solutions</strong> - $42,500
+                    <br /><span style="color: var(--gray-700); font-size: 0.9rem;">Lowest price, 90-day support included</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="background-color: var(--gray-50); margin-bottom: 1.5rem;">
+        <div class="card-header" style="border-bottom: 1px solid var(--gray-300); margin-bottom: 1rem;">
+            Finalization Summary
+        </div>
+        <div style="padding: 0;">
+            <p><strong>Total Price:</strong> $45,000</p>
+            <p><strong>Currency:</strong> USD</p>
+            <p><strong>Items (Locked Snapshot):</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+                <li>Item 1: 50 units @@ $500/unit = $25,000</li>
+                <li>Item 2: 20 units @@ $1,000/unit = $20,000</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem;">
+        <button type="button" class="btn btn-primary btn-lg">Finalize This Bid</button>
+        <a href="/buyer/rfps" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string RfpId { get; set; } = string.Empty;
+
+    private async Task HandleFinalize()
+    {
+        // TODO: POST to /api/buyer/rfps/{rfpId}/finalize
+        await Task.CompletedTask;
+    }
+}

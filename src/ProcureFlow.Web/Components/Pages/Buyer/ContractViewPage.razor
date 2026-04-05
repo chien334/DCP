@@ -1,0 +1,88 @@
+@page "/buyer/contracts/{ContractId}"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="Contract Details" Subtitle="Review and sign the procurement contract" />
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">Contract Status</div>
+        <div style="margin: 1rem 0;">
+            <StatusBadge Status="Created" />
+        </div>
+        <p style="margin: 0.5rem 0; color: var(--gray-700);">
+            <strong>Contract No:</strong> CNT-2026-0001<br />
+            <strong>Date:</strong> April 5, 2026
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Finalized Snapshot</div>
+        <p style="margin: 0.5rem 0; color: var(--gray-700);">
+            <strong>Total:</strong> $45,000 USD<br />
+            <strong>Lines:</strong> 2 items<br />
+            <strong>Locked:</strong> Yes
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Buyer Signature</div>
+    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed By:</p>
+                <p style="margin: 0.25rem 0; font-weight: 600;">John Buyer</p>
+                <p style="margin: 0; color: var(--gray-700); font-size: 0.85rem;">john@company.com</p>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed At:</p>
+                <p style="margin: 0.25rem 0; font-weight: 600;">April 5, 2026 10:30 AM</p>
+                <p style="margin: 0; color: var(--success-color); font-size: 0.85rem;">✓ Signed</p>
+            </div>
+        </div>
+    </div>
+
+    @if (BuyerSigned)
+    {
+        <p style="color: var(--success-color); font-weight: 500; margin: 0;">
+            ✓ Buyer signature captured
+        </p>
+    }
+    else
+    {
+        <button type="button" class="btn btn-primary btn-lg">Sign with My Name</button>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">Vendor Signature</div>
+    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem;">
+        <p style="margin: 0; color: var(--gray-700);">
+            Awaiting vendor response...
+        </p>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="/buyer/contracts" class="btn btn-secondary">Back to Contracts</a>
+</div>
+
+@code {
+    [Parameter]
+    public string ContractId { get; set; } = string.Empty;
+
+    private bool BuyerSigned = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load contract from /api/buyer/contracts/{contractId}
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleBuyerSign()
+    {
+        // TODO: POST to /api/buyer/contracts/{contractId}/sign
+        BuyerSigned = true;
+        await Task.CompletedTask;
+    }
+}

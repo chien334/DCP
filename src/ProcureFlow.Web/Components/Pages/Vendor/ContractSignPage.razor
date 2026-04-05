@@ -1,0 +1,91 @@
+@page "/vendor/contracts/{ContractId}"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="Sign Contract" Subtitle="Review finalized terms and provide signature" />
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header">Contract Overview</div>
+        <p style="margin: 0.5rem 0; color: var(--gray-700);">
+            <strong>Contract No:</strong> CNT-2026-0001<br />
+            <strong>Buyer:</strong> TechCorp Inc.<br />
+            <strong>Total:</strong> $45,000 USD
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Current Status</div>
+        <div style="margin: 1rem 0;">
+            <StatusBadge Status="PartiallySigned" />
+        </div>
+        <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">
+            Buyer has signed. Awaiting vendor signature.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Buyer Signature</div>
+    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed By:</p>
+                <p style="margin: 0.25rem 0; font-weight: 600;">John Buyer</p>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--gray-700); font-size: 0.9rem;">Signed At:</p>
+                <p style="margin: 0.25rem 0; font-weight: 600;">April 5, 2026 10:30 AM</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Your Signature</div>
+    <div style="background-color: var(--gray-50); padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem;">
+        <p style="margin: 0; color: var(--gray-700);">
+            By signing below, you agree to the terms and conditions of this contract.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <button type="button" class="btn btn-primary btn-lg" onclick="alert('Sign contract functionality')">
+            ✓ Sign Contract
+        </button>
+        <button type="button" class="btn btn-danger btn-lg" onclick="alert('Decline with note')">
+            ✗ Decline Contract
+        </button>
+    </div>
+
+    <div class="form-group" style="display: none;" id="decline-section">
+        <label class="form-label">Reason for Declining</label>
+        <textarea class="form-control" rows="3" placeholder="Explain why you cannot accept this contract"></textarea>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="/vendor/contracts" class="btn btn-secondary">Back to Contracts</a>
+</div>
+
+@code {
+    [Parameter]
+    public string ContractId { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load contract from /api/vendor/contracts/{contractId}
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSign()
+    {
+        // TODO: POST to /api/vendor/contracts/{contractId}/sign
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleDecline()
+    {
+        // TODO: POST to /api/vendor/contracts/{contractId}/decline with note
+        await Task.CompletedTask;
+    }
+}

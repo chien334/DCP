@@ -1,0 +1,104 @@
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<nav class="sidebar-nav">
+    <div class="nav-header">
+        <h2 class="nav-title">Navigation</h2>
+    </div>
+
+    <ul class="nav-list">
+        @if (UserRole == "Admin")
+        {
+            <li class="nav-item">
+                <a href="/admin/companies" class="nav-link">
+                    <span class="nav-icon">🏢</span>
+                    <span class="nav-label">Companies</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/employees" class="nav-link">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-label">Employees</span>
+                </a>
+            </li>
+        }
+
+        @if (UserRole == "Buyer")
+        {
+            <li class="nav-item">
+                <a href="/buyer/dashboard" class="nav-link">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/buyer/rfps" class="nav-link">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">RFPs</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/buyer/bids" class="nav-link">
+                    <span class="nav-icon">💰</span>
+                    <span class="nav-label">Bids</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/buyer/contracts" class="nav-link">
+                    <span class="nav-icon">📄</span>
+                    <span class="nav-label">Contracts</span>
+                </a>
+            </li>
+        }
+
+        @if (UserRole == "Vendor")
+        {
+            <li class="nav-item">
+                <a href="/vendor/dashboard" class="nav-link">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/vendor/invites" class="nav-link">
+                    <span class="nav-icon">📬</span>
+                    <span class="nav-label">Invites</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/vendor/bids" class="nav-link">
+                    <span class="nav-icon">💼</span>
+                    <span class="nav-label">My Bids</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/vendor/contracts" class="nav-link">
+                    <span class="nav-icon">✍️</span>
+                    <span class="nav-label">Sign Contracts</span>
+                </a>
+            </li>
+        }
+    </ul>
+
+    <div class="nav-footer">
+        <a href="/auth/logout" class="nav-link danger">
+            <span class="nav-icon">🚪</span>
+            <span class="nav-label">Logout</span>
+        </a>
+    </div>
+</nav>
+
+@code {
+    private string UserRole = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user?.Identity?.IsAuthenticated == true)
+        {
+            UserRole = user.FindFirst("role")?.Value ?? string.Empty;
+        }
+    }
+}

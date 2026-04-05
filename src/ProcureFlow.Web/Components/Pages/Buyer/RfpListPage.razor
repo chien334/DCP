@@ -1,0 +1,62 @@
+@page "/buyer/rfps"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="RFP Management" Subtitle="Create, manage, and track requests for proposal" />
+
+<div style="margin-bottom: 1.5rem;">
+    <a href="/buyer/rfps/create" class="btn btn-primary btn-lg">
+        ➕ Create New RFP
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">My RFPs</div>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Category</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Bids</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">IT Equipment Supply - Q2 2026</td>
+                    <td style="padding: 1rem;">Technology</td>
+                    <td style="text-align: center; padding: 1rem;">3</td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <StatusBadge Status="Created" />
+                    </td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <a href="/buyer/rfps/1" class="btn btn-sm btn-primary">View</a>
+                    </td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">Office Furniture Procurement</td>
+                    <td style="padding: 1rem;">Facilities</td>
+                    <td style="text-align: center; padding: 1rem;">5</td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <StatusBadge Status="Finalized" />
+                    </td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <a href="/buyer/rfps/2" class="btn btn-sm btn-primary">View</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p style="padding: 1rem 0 0 0; margin: 0; text-align: center; color: var(--gray-700);">
+        (Placeholder: Load from API)
+    </p>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load RFP list from API
+        await Task.CompletedTask;
+    }
+}

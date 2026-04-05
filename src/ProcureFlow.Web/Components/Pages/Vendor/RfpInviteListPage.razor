@@ -1,0 +1,55 @@
+@page "/vendor/invites"
+@using ProcureFlow.Web.Components.Shared
+
+<PageTitle Title="RFP Invites" Subtitle="View and respond to buyer invitations" />
+
+<div class="card">
+    <div class="card-header">Pending Invites</div>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
+                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Buyer</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Deadline</th>
+                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">IT Equipment Supply - Q2 2026</td>
+                    <td style="padding: 1rem;">TechCorp Inc.</td>
+                    <td style="text-align: center; padding: 1rem;">April 15, 2026</td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <a href="/vendor/bids/create/1" class="btn btn-sm btn-primary">Accept & Bid</a>
+                    </td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 1rem;">Office Furniture Procurement</td>
+                    <td style="padding: 1rem;">Enterprise Systems Ltd.</td>
+                    <td style="text-align: center; padding: 1rem;">April 20, 2026</td>
+                    <td style="text-align: center; padding: 1rem;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="alert('Decline functionality')">Decline</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p style="padding: 1rem 0 0 0; margin: 0; text-align: center; color: var(--gray-700);">
+        (Placeholder: Load from API)
+    </p>
+</div>
+
+<style>
+    button {
+        margin: 0;
+    }
+</style>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Load invites from /api/vendor/invites
+        await Task.CompletedTask;
+    }
+}
