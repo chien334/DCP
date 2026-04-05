@@ -1,0 +1,67 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="ml-2">ProcureFlow</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" OnClick="@ToggleDarkMode" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+                Trang chủ
+            </MudNavLink>
+            <MudNavGroup Title="Quản trị" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
+                <MudNavLink Href="/companies" Icon="@Icons.Material.Filled.Business">Công ty</MudNavLink>
+                <MudNavLink Href="/employees" Icon="@Icons.Material.Filled.People">Nhân viên</MudNavLink>
+            </MudNavGroup>
+            <MudNavGroup Title="Mua sắm" Icon="@Icons.Material.Filled.ShoppingCart" Expanded="true">
+                <MudNavLink Href="/rfps" Icon="@Icons.Material.Filled.Description">RFP</MudNavLink>
+                <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Danh mục</MudNavLink>
+            </MudNavGroup>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    private MudTheme _theme = new()
+    {
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = ["Inter", "Helvetica", "Arial", "sans-serif"]
+            }
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1a1a2e",
+            Secondary = "#16213e",
+            AppbarBackground = "#1a1a2e"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#7c4dff",
+            Secondary = "#448aff"
+        }
+    };
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;
+}

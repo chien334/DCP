@@ -1,0 +1,60 @@
+@page "/"
+
+<PageTitle>ProcureFlow</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Hệ thống quản lý mua sắm và đấu thầu</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-1" /> Công ty
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Quản lý thông tin công ty và nhân viên</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/companies" Variant="Variant.Text" Color="Color.Primary">Xem</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-1" /> RFP
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Tạo và quản lý yêu cầu báo giá</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/rfps" Variant="Variant.Text" Color="Color.Primary">Xem</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Class="mr-1" /> Danh mục
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Quản lý danh mục sản phẩm và dịch vụ</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/categories" Variant="Variant.Text" Color="Color.Primary">Xem</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-1" /> Nhân viên
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Quản lý nhân viên trong hệ thống</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/employees" Variant="Variant.Text" Color="Color.Primary">Xem</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

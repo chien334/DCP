@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AA27EA1E-DE76-40CC-95F5-2A9E9CA33EF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcureFlow.Core", "src\ProcureFlow.Core\ProcureFlow.Core.csproj", "{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcureFlow.Infrastructure", "src\ProcureFlow.Infrastructure\ProcureFlow.Infrastructure.csproj", "{D531DE27-B7C7-4601-9DD9-20A58F64E279}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcureFlow.Web", "src\ProcureFlow.Web\ProcureFlow.Web.csproj", "{50EBCBFC-FBBF-4115-A2EF-CC24267E4076}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1277A239-6E53-4044-9276-A7A47CA2EBD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcureFlow.Infrastructure.Tests", "tests\ProcureFlow.Infrastructure.Tests\ProcureFlow.Infrastructure.Tests.csproj", "{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcureFlow.Web.IntegrationTests", "tests\ProcureFlow.Web.IntegrationTests\ProcureFlow.Web.IntegrationTests.csproj", "{DA9604B3-41D7-4A57-BFBE-517B5984E3B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D531DE27-B7C7-4601-9DD9-20A58F64E279}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D531DE27-B7C7-4601-9DD9-20A58F64E279}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D531DE27-B7C7-4601-9DD9-20A58F64E279}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D531DE27-B7C7-4601-9DD9-20A58F64E279}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50EBCBFC-FBBF-4115-A2EF-CC24267E4076}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50EBCBFC-FBBF-4115-A2EF-CC24267E4076}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50EBCBFC-FBBF-4115-A2EF-CC24267E4076}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50EBCBFC-FBBF-4115-A2EF-CC24267E4076}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA9604B3-41D7-4A57-BFBE-517B5984E3B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA9604B3-41D7-4A57-BFBE-517B5984E3B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA9604B3-41D7-4A57-BFBE-517B5984E3B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA9604B3-41D7-4A57-BFBE-517B5984E3B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BF5AB1EE-3CBC-4E8A-80FB-310EB8BD1298} = {AA27EA1E-DE76-40CC-95F5-2A9E9CA33EF5}
+		{D531DE27-B7C7-4601-9DD9-20A58F64E279} = {AA27EA1E-DE76-40CC-95F5-2A9E9CA33EF5}
+		{50EBCBFC-FBBF-4115-A2EF-CC24267E4076} = {AA27EA1E-DE76-40CC-95F5-2A9E9CA33EF5}
+		{F62C8920-68B6-4A2A-AD5C-2F63BAFEFF7F} = {1277A239-6E53-4044-9276-A7A47CA2EBD0}
+		{DA9604B3-41D7-4A57-BFBE-517B5984E3B6} = {1277A239-6E53-4044-9276-A7A47CA2EBD0}
+	EndGlobalSection
+EndGlobal
