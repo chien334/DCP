@@ -8,6 +8,12 @@ A multi-company procurement platform where a buyer company creates RFPs, invites
 
 Enable a complete and auditable Source-to-Contract workflow from RFP creation to signed contract with clear vendor competition.
 
+## Initialization References
+
+- Primary bootstrap config: `BASE_OLD_PROJECT.md` (section: "Cau hinh tao du an moi (RFP)")
+- Business/domain source: `DATABASE.md`
+- Diagram sources: `RfpDiagram.png`, `RfpDiagram.drawio.xml`, `RfpDiagram.decoded.xml`
+
 ## Requirements
 
 ### Validated
@@ -35,6 +41,7 @@ The domain model includes organizations, employees, RFP, RFP items/specs, bid it
 - **Data Integrity**: Child records (items/specs/bid items/finalize items) must maintain strict FK consistency - financial and legal correctness depends on it.
 - **Role Separation**: Buyer/Admin/Vendor API capabilities must stay separated - avoids unauthorized state changes.
 - **Auditability**: Status and timestamp fields must be maintained across all core entities - required for dispute handling and tracking.
+- **Implementation Baseline**: New work must follow bootstrap settings in BASE_OLD_PROJECT.md and active GSD config in .planning/config.json.
 
 ## Key Decisions
 

@@ -4,18 +4,30 @@
 
 This roadmap delivers an end-to-end source-to-contract platform in six phases: foundation and master data, RFP authoring, vendor participation and bid intake, bid comparison, winning bid finalization, and contract execution/signing.
 
+## Initialization References
+
+- Bootstrap/config reference: `BASE_OLD_PROJECT.md`
+- Domain/schema reference: `DATABASE.md`
+- Diagram references: `RfpDiagram.png`, `RfpDiagram.drawio.xml`, `RfpDiagram.decoded.xml`
+
+## Fixed Workflow Constraints
+
+- Required sequence: Create RFP -> Invite Vendor -> Submit Bid -> Finalize -> Generate Contract -> Sign
+- Required data chain: RFP -> RfpItem -> RfpItemSpec; RfpBid -> RfpBidItem -> RfpBidItemSpec; RfpFinalize -> RfpContract
+- Required role boundaries: Admin, Buyer, Vendor
+
 ## Phases
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Foundation And Access Control** - Company, employee, master data, authorization, audit foundation.
-- [ ] **Phase 2: RFP Authoring Core** - Create/list/detail RFP with item/spec and attachment structures.
-- [ ] **Phase 3: Vendor Invite And Bid Submission** - Invite vendors and receive structured bids.
-- [ ] **Phase 4: Buyer Bid Review And Comparison** - Compare bids against RFP requirements and retrieve decision context.
-- [ ] **Phase 5: Finalization Workflow** - Select winning bid and lock finalized pricing snapshot.
-- [ ] **Phase 6: Contract Lifecycle And Signatures** - Create contract, sign/decline flow, final legal status tracking.
+- [x] **Phase 1: Foundation And Access Control** - Company, employee, master data, authorization, audit foundation.
+- [x] **Phase 2: RFP Authoring Core** - Create/list/detail RFP with item/spec and attachment structures.
+- [x] **Phase 3: Vendor Invite And Bid Submission** - Invite vendors and receive structured bids.
+- [x] **Phase 4: Buyer Bid Review And Comparison** - Compare bids against RFP requirements and retrieve decision context.
+- [x] **Phase 5: Finalization Workflow** - Select winning bid and lock finalized pricing snapshot.
+- [x] **Phase 6: Contract Lifecycle And Signatures** - Create contract, sign/decline flow, final legal status tracking.
 
 ## Phase Details
 
@@ -30,9 +42,9 @@ This roadmap delivers an end-to-end source-to-contract platform in six phases: f
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Implement company and employee entities, repositories, and CRUD endpoints.
-- [ ] 01-02: Implement category and administrative unit read models.
-- [ ] 01-03: Implement RBAC middleware and audit metadata handling.
+- [x] 01-01: Implement company and employee entities, repositories, and CRUD endpoints.
+- [x] 01-02: Implement category and administrative unit read models.
+- [x] 01-03: Implement RBAC middleware and audit metadata handling.
 
 ### Phase 2: RFP Authoring Core
 **Goal**: Allow buyer to create RFP with items/specs/attachments and query RFP list/detail.
@@ -45,9 +57,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Implement RFP aggregate model and create endpoint transaction flow.
-- [ ] 02-02: Implement item/spec/attachment persistence and validation rules.
-- [ ] 02-03: Implement RFP read APIs and aggregate mapping.
+- [x] 02-01: Implement RFP aggregate model and create endpoint transaction flow.
+- [x] 02-02: Implement item/spec/attachment persistence and validation rules.
+- [x] 02-03: Implement RFP read APIs and aggregate mapping.
 
 ### Phase 3: Vendor Invite And Bid Submission
 **Goal**: Enable invite participation tracking and vendor bid submission with bid items/specs.
@@ -60,9 +72,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Implement vendor participation invite and response state model.
-- [ ] 03-02: Implement vendor bid create endpoint with totals and currency fields.
-- [ ] 03-03: Implement bid item and bid item spec persistence/validation.
+- [x] 03-01: Implement vendor participation invite and response state model.
+- [x] 03-02: Implement vendor bid create endpoint with totals and currency fields.
+- [x] 03-03: Implement bid item and bid item spec persistence/validation.
 
 ### Phase 4: Buyer Bid Review And Comparison
 **Goal**: Provide buyer retrieval and comparison capability across vendor bids for the same RFP.
@@ -75,8 +87,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Implement buyer bid query APIs scoped by RFP.
-- [ ] 04-02: Implement bid comparison projection and response contract.
+- [x] 04-01: Implement buyer bid query APIs scoped by RFP.
+- [x] 04-02: Implement bid comparison projection and response contract.
 
 ### Phase 5: Finalization Workflow
 **Goal**: Let buyer finalize a winning bid and lock the final commercial snapshot.
@@ -89,8 +101,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Implement finalization endpoint and domain invariants.
-- [ ] 05-02: Implement finalization item snapshot generation and validation.
+- [x] 05-01: Implement finalization endpoint and domain invariants.
+- [x] 05-02: Implement finalization item snapshot generation and validation.
 
 ### Phase 6: Contract Lifecycle And Signatures
 **Goal**: Generate contract from finalization and complete buyer/vendor signing flow.
@@ -103,17 +115,17 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Implement contract creation and contract retrieval APIs.
-- [ ] 06-02: Implement buyer/vendor sign flow with timestamp and status handling.
-- [ ] 06-03: Implement vendor decline flow and post-decline state rules.
+- [x] 06-01: Implement contract creation and contract retrieval APIs.
+- [x] 06-02: Implement buyer/vendor sign flow with timestamp and status handling.
+- [x] 06-03: Implement vendor decline flow and post-decline state rules.
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation And Access Control | 0/3 | Not started | - |
-| 2. RFP Authoring Core | 0/3 | Not started | - |
-| 3. Vendor Invite And Bid Submission | 0/3 | Not started | - |
-| 4. Buyer Bid Review And Comparison | 0/2 | Not started | - |
-| 5. Finalization Workflow | 0/2 | Not started | - |
-| 6. Contract Lifecycle And Signatures | 0/3 | Not started | - |
+| 1. Foundation And Access Control | 3/3 | Complete | 2026-04-05 |
+| 2. RFP Authoring Core | 3/3 | Complete | 2026-04-05 |
+| 3. Vendor Invite And Bid Submission | 3/3 | Complete | 2026-04-05 |
+| 4. Buyer Bid Review And Comparison | 2/2 | Complete | 2026-04-05 |
+| 5. Finalization Workflow | 2/2 | Complete | 2026-04-05 |
+| 6. Contract Lifecycle And Signatures | 3/3 | Complete | 2026-04-05 |
