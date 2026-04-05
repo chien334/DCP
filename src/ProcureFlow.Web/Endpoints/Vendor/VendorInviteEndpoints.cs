@@ -19,6 +19,11 @@ public static class VendorInviteEndpoints
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (!companyId.HasValue || companyId.Value <= 0)
+        {
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+        }
+
         page = page <= 0 ? 1 : page;
         pageSize = pageSize <= 0 ? 20 : Math.Min(pageSize, 100);
 
@@ -27,10 +32,7 @@ public static class VendorInviteEndpoints
             .ThenInclude(r => r.Company)
             .AsQueryable();
 
-        if (companyId.HasValue)
-        {
-            query = query.Where(v => v.CompanyId == companyId.Value);
-        }
+        query = query.Where(v => v.CompanyId == companyId.Value);
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query

@@ -9,11 +9,68 @@ public static class BidEndpoints
 {
     public static RouteGroupBuilder MapBidEndpoints(this RouteGroupBuilder group)
     {
+        group.MapGet("/rfps/{rfpId:int}", GetVendorRfpAsync);
         group.MapPost("/bids", CreateBidAsync);
         group.MapGet("/bids", ListMyBidsAsync);
         group.MapGet("/bids/{bidId:int}", GetBidDetailAsync);
         group.MapPut("/bids/{bidId:int}", UpdateBidAsync);
         return group;
+    }
+
+    private static async Task<IResult> GetVendorRfpAsync(
+        [FromRoute] int rfpId,
+        [FromQuery] int? companyId,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        if (!companyId.HasValue || companyId.Value <= 0)
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+
+        var invited = await dbContext.RfpVendorParticipations
+            .AnyAsync(v => v.RfpId == rfpId && v.CompanyId == companyId.Value, cancellationToken);
+
+        if (!invited)
+            return Results.NotFound(new { code = "VENDOR_RFP_NOT_FOUND", message = "RFP invitation not found for this vendor company." });
+
+        var rfp = await dbContext.Rfps.AsNoTracking()
+            .Include(r => r.Company)
+            .Include(r => r.Items)
+            .ThenInclude(i => i.Specs)
+            .FirstOrDefaultAsync(r => r.Id == rfpId, cancellationToken);
+
+        if (rfp is null)
+            return Results.NotFound(new { code = "RFP_NOT_FOUND", message = "The requested RFP was not found." });
+
+        var existingBidId = await dbContext.RfpBids.AsNoTracking()
+            .Where(b => b.RfpId == rfpId && b.CompanyId == companyId.Value)
+            .Select(b => (int?)b.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return Results.Ok(new VendorRfpDetailResponse(
+            rfp.Id,
+            rfp.CompanyId,
+            companyId.Value,
+            rfp.Title,
+            rfp.Description,
+            rfp.Company.LegalName,
+            (int)rfp.Status,
+            rfp.Deadline,
+            existingBidId,
+            rfp.Items.Select(i => new VendorRfpItemDto(
+                i.Id,
+                i.Name,
+                i.Quantity,
+                i.Unit,
+                i.Note,
+                (int)i.Status,
+                i.Specs.Select(s => new VendorRfpItemSpecDto(
+                    s.Id,
+                    s.Key,
+                    s.ValueText,
+                    s.ValueNumber,
+                    s.ValueBoolean,
+                    s.Unit,
+                    (int)s.Status)).ToList())).ToList()));
     }
 
     // ── POST /api/vendor/bids ─────────────────────────────────────────────────────
@@ -132,13 +189,15 @@ public static class BidEndpoints
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (!companyId.HasValue || companyId.Value <= 0)
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+
         page = page <= 0 ? 1 : page;
         pageSize = pageSize <= 0 ? 20 : Math.Min(pageSize, 100);
 
-        var query = dbContext.RfpBids.AsNoTracking().AsQueryable();
-
-        if (companyId.HasValue)
-            query = query.Where(b => b.CompanyId == companyId.Value);
+        var query = dbContext.RfpBids.AsNoTracking()
+            .Where(b => b.CompanyId == companyId.Value)
+            .AsQueryable();
         if (rfpId.HasValue)
             query = query.Where(b => b.RfpId == rfpId.Value);
 
@@ -160,15 +219,19 @@ public static class BidEndpoints
 
     private static async Task<IResult> GetBidDetailAsync(
         [FromRoute] int bidId,
+        [FromQuery] int? companyId,
         ApplicationDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        if (!companyId.HasValue || companyId.Value <= 0)
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+
         var bid = await dbContext.RfpBids.AsNoTracking()
             .Include(b => b.Items).ThenInclude(i => i.Specs)
-            .FirstOrDefaultAsync(b => b.Id == bidId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == bidId && b.CompanyId == companyId.Value, cancellationToken);
 
         if (bid is null)
-            return Results.NotFound();
+            return Results.NotFound(new { code = "BID_NOT_FOUND", message = "Bid not found for the supplied vendor company." });
 
         var detail = new BidDetailResponse(
             bid.Id, bid.RfpId, bid.CompanyId,
@@ -298,6 +361,36 @@ public sealed record CreateBidItemRequest(
 
 public sealed record CreateBidItemSpecRequest(
     string Key, string? ValueText, decimal? ValueNumber, bool? ValueBoolean, string? Unit);
+
+public sealed record VendorRfpDetailResponse(
+    int Id,
+    int BuyerCompanyId,
+    int VendorCompanyId,
+    string Title,
+    string Description,
+    string BuyerCompanyName,
+    int Status,
+    DateTime? Deadline,
+    int? ExistingBidId,
+    IReadOnlyCollection<VendorRfpItemDto> Items);
+
+public sealed record VendorRfpItemDto(
+    int Id,
+    string Name,
+    int Quantity,
+    string Unit,
+    string? Note,
+    int Status,
+    IReadOnlyCollection<VendorRfpItemSpecDto> Specs);
+
+public sealed record VendorRfpItemSpecDto(
+    int Id,
+    string Key,
+    string? ValueText,
+    decimal? ValueNumber,
+    bool? ValueBoolean,
+    string? Unit,
+    int Status);
 
 public sealed record UpdateBidRequest(
     int CompanyId,

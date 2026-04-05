@@ -364,6 +364,29 @@ public class ContractLifecycleEndpointsTests : IClassFixture<WebApplicationFacto
         Assert.Equal(rfpId, body.GetProperty("rfpId").GetInt32());
     }
 
+    [Fact(DisplayName = "API-05 vendor can list contracts for its company")]
+    public async Task API05_VendorCanListContracts()
+    {
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+        var (rfpId, vendorCompanyId) = await SeedFinalizedRfpAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/contract", new { contractNo = "CT-0010" });
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var contractId = await db.RfpContracts.Select(c => c.Id).SingleAsync();
+
+        await buyer.PostAsJsonAsync($"/api/buyer/contracts/{contractId}/sign", new { note = "Buyer approved" });
+
+        var response = await vendor.GetAsync($"/api/vendor/contracts?companyId={vendorCompanyId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, body.GetProperty("total").GetInt32());
+        Assert.Equal(contractId, body.GetProperty("items")[0].GetProperty("id").GetInt32());
+    }
+
     [Fact(DisplayName = "FIN-01 finalized bid cannot be updated returns 409")]
     public async Task FIN01_FinalizedBidCannotBeUpdated_Returns409()
     {

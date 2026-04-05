@@ -1,55 +1,155 @@
 @page "/vendor/invites"
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Vendor
+@using ProcureFlow.Core.Entities
+@inject VendorApiClient VendorApi
 
 <PageHeader Title="RFP Invites" Subtitle="View and respond to buyer invitations" />
 
-<div class="card">
-    <div class="card-header">Pending Invites</div>
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Buyer</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Deadline</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">IT Equipment Supply - Q2 2026</td>
-                    <td style="padding: 1rem;">TechCorp Inc.</td>
-                    <td style="text-align: center; padding: 1rem;">April 15, 2026</td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <a href="/vendor/bids/create/1" class="btn btn-sm btn-primary">Accept & Bid</a>
-                    </td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">Office Furniture Procurement</td>
-                    <td style="padding: 1rem;">Enterprise Systems Ltd.</td>
-                    <td style="text-align: center; padding: 1rem;">April 20, 2026</td>
-                    <td style="text-align: center; padding: 1rem;">
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="alert('Decline functionality')">Decline</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">Filters</div>
+    <div class="grid grid-3" style="margin-top: 1rem; align-items: end;">
+        <div class="form-group">
+            <label class="form-label">Vendor Company Id</label>
+            <input type="number" class="form-control" @bind="CompanyIdInput" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Page Size</label>
+            <select class="form-control" @bind="PageSize">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <div class="form-group" style="display: flex; gap: 0.75rem; align-items: center;">
+            <button type="button" class="btn btn-primary" @onclick="ApplyFiltersAsync" disabled="@IsLoading">Load Invites</button>
+            <button type="button" class="btn btn-secondary" @onclick="LoadAsync" disabled="@(IsLoading || CompanyId <= 0)">Refresh</button>
+        </div>
     </div>
-    <p style="padding: 1rem 0 0 0; margin: 0; text-align: center; color: var(--gray-700);">
-        (Placeholder: Load from API)
-    </p>
 </div>
 
-<style>
-    button {
-        margin: 0;
-    }
-</style>
+@if (IsLoading)
+{
+    <div class="card">
+        <div class="card-header">Pending Invites</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Loading vendor invites from the API...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Unable to load invites</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">Pending Invites</div>
+        @if (Response is null || Response.Items.Count == 0)
+        {
+            <p style="margin: 1rem 0 0 0; color: var(--gray-700);">No invites matched the current filters.</p>
+        }
+        else
+        {
+            <div style="overflow-x: auto; margin-top: 1rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                            <th style="text-align: left; padding: 1rem; font-weight: 600;">RFP Title</th>
+                            <th style="text-align: left; padding: 1rem; font-weight: 600;">Buyer</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Deadline</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Status</th>
+                            <th style="text-align: center; padding: 1rem; font-weight: 600;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Response.Items)
+                        {
+                            <tr style="border-bottom: 1px solid var(--gray-200);">
+                                <td style="padding: 1rem; font-weight: 600;">@item.RfpTitle</td>
+                                <td style="padding: 1rem;">@item.BuyerCompanyName</td>
+                                <td style="text-align: center; padding: 1rem;">@FormatDeadline(item.Deadline)</td>
+                                <td style="text-align: center; padding: 1rem;"><StatusBadge Status="@ToInviteStatusLabel(item.Status)" /></td>
+                                <td style="text-align: center; padding: 1rem; display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <a href="@($"/vendor/bids/create/{item.RfpId}?companyId={CompanyId}")" class="btn btn-sm btn-primary">Review & Bid</a>
+                                    @if (item.Status != (int)VendorParticipationStatus.Invited)
+                                    {
+                                        <a href="@($"/vendor/dashboard?companyId={CompanyId}")" class="btn btn-sm btn-secondary">Dashboard</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
 
 @code {
+    [SupplyParameterFromQuery]
+    public int? CompanyIdQuery { get; set; }
+
+    private bool IsLoading = true;
+    private string? ErrorMessage;
+    private VendorInviteListResponse? Response;
+    private int CompanyId = 1;
+    private string CompanyIdInput = "1";
+    private int PageSize = 20;
+
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load invites from /api/vendor/invites
-        await Task.CompletedTask;
+        if (CompanyIdQuery is > 0)
+        {
+            CompanyId = CompanyIdQuery.Value;
+            CompanyIdInput = CompanyId.ToString();
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        if (!int.TryParse(CompanyIdInput, out var parsedCompanyId) || parsedCompanyId <= 0)
+        {
+            ErrorMessage = "Enter a valid vendor company id before loading invites.";
+            return;
+        }
+
+        CompanyId = parsedCompanyId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            Response = await VendorApi.GetInvitesAsync(CompanyId, pageSize: PageSize);
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading vendor invites: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private static string FormatDeadline(DateTime? deadline)
+        => deadline?.ToLocalTime().ToString("g") ?? "Open";
+
+    private static string ToInviteStatusLabel(int status)
+        => ((VendorParticipationStatus)status).ToString();
     }
 }

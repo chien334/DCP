@@ -342,7 +342,7 @@ public class VendorBidEndpointsTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
 
-        var detailResponse = await vendor.GetAsync($"/api/vendor/bids/{bidId}");
+        var detailResponse = await vendor.GetAsync($"/api/vendor/bids/{bidId}?companyId={vendorCompanyId}");
         var detail = await detailResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(129600m, detail.GetProperty("grandTotal").GetDecimal());
         Assert.Equal("Updated proposal", detail.GetProperty("proposal").GetString());
@@ -460,7 +460,7 @@ public class VendorBidEndpointsTests : IClassFixture<WebApplicationFactory<Progr
         var createBody = await createResp.Content.ReadFromJsonAsync<JsonElement>();
         var bidId = createBody.GetProperty("id").GetInt32();
 
-        var response = await vendor.GetAsync($"/api/vendor/bids/{bidId}");
+        var response = await vendor.GetAsync($"/api/vendor/bids/{bidId}?companyId={vendorCompanyId}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var detail = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -529,5 +529,48 @@ public class VendorBidEndpointsTests : IClassFixture<WebApplicationFactory<Progr
         var buyer = CreateBuyerClient();
         var response = await buyer.GetAsync("/api/vendor/bids");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "API-05 vendor can list invites for its company")]
+    public async Task API05_VendorCanListInvitesForCompany()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var vendorCompanyId = await SeedCompanyAsync(admin, "Vendor");
+        var (rfpId, _) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/invites", new { companyId = vendorCompanyId });
+
+        var response = await vendor.GetAsync($"/api/vendor/invites?companyId={vendorCompanyId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, body.GetProperty("total").GetInt32());
+        Assert.Equal(rfpId, body.GetProperty("items")[0].GetProperty("rfpId").GetInt32());
+    }
+
+    [Fact(DisplayName = "API-05 vendor can load invited RFP detail")]
+    public async Task API05_VendorCanLoadInvitedRfpDetail()
+    {
+        var admin = CreateAdminClient();
+        var buyer = CreateBuyerClient();
+        var vendor = CreateVendorClient();
+
+        var buyerCompanyId = await SeedCompanyAsync(admin, "Buyer");
+        var vendorCompanyId = await SeedCompanyAsync(admin, "Vendor");
+        var (rfpId, rfpItemId) = await SeedRfpWithItemAsync(buyer, buyerCompanyId);
+
+        await buyer.PostAsJsonAsync($"/api/buyer/rfps/{rfpId}/invites", new { companyId = vendorCompanyId });
+
+        var response = await vendor.GetAsync($"/api/vendor/rfps/{rfpId}?companyId={vendorCompanyId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(rfpId, body.GetProperty("id").GetInt32());
+        Assert.Equal(vendorCompanyId, body.GetProperty("vendorCompanyId").GetInt32());
+        Assert.Equal(rfpItemId, body.GetProperty("items")[0].GetProperty("id").GetInt32());
     }
 }

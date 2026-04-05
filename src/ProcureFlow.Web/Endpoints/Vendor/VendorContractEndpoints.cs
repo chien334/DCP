@@ -9,10 +9,55 @@ public static class VendorContractEndpoints
 {
     public static RouteGroupBuilder MapVendorContractEndpoints(this RouteGroupBuilder group)
     {
+        group.MapGet("/contracts", ListVendorContractsAsync);
         group.MapGet("/contracts/{contractId:int}", GetVendorContractAsync);
         group.MapPost("/contracts/{contractId:int}/sign", VendorSignContractAsync);
         group.MapPost("/contracts/{contractId:int}/decline", VendorDeclineContractAsync);
         return group;
+    }
+
+    private static async Task<IResult> ListVendorContractsAsync(
+        [FromQuery] int? companyId,
+        [FromQuery] int? status,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        if (!companyId.HasValue || companyId.Value <= 0)
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+
+        page = page <= 0 ? 1 : page;
+        pageSize = pageSize <= 0 ? 20 : Math.Min(pageSize, 100);
+
+        var query = dbContext.RfpContracts.AsNoTracking()
+            .Include(c => c.RfpFinalize)
+            .Where(c => c.RfpFinalize.CompanyId == companyId.Value)
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(c => (int)c.Status == status.Value);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(c => c.UpdatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => new VendorContractListItem(
+                c.Id,
+                c.RfpFinalize.RfpId,
+                c.ContractNo,
+                c.Title,
+                (int)c.Status,
+                c.BuyerSign,
+                c.VendorSign,
+                c.CreatedAtUtc,
+                c.UpdatedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return Results.Ok(new VendorContractListResponse(total, page, pageSize, items));
     }
 
     private static async Task<IResult> GetVendorContractAsync(
@@ -21,6 +66,9 @@ public static class VendorContractEndpoints
         ApplicationDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        if (companyId <= 0)
+            return Results.BadRequest(new { code = "COMPANY_ID_REQUIRED", message = "companyId query parameter is required." });
+
         var contract = await dbContext.RfpContracts.AsNoTracking()
             .Include(c => c.RfpFinalize)
             .FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken);
@@ -116,6 +164,23 @@ public static class VendorContractEndpoints
 }
 
 public sealed record VendorActionRequest(int CompanyId, string? Note);
+
+public sealed record VendorContractListItem(
+    int Id,
+    int RfpId,
+    string ContractNo,
+    string Title,
+    int Status,
+    bool BuyerSign,
+    bool VendorSign,
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);
+
+public sealed record VendorContractListResponse(
+    int Total,
+    int Page,
+    int PageSize,
+    IReadOnlyCollection<VendorContractListItem> Items);
 
 public sealed record VendorContractDetailResponse(
     int Id,

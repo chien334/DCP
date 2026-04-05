@@ -1,57 +1,145 @@
 @page "/vendor/dashboard"
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Vendor
+@using ProcureFlow.Core.Entities
+@inject VendorApiClient VendorApi
 
 <PageHeader Title="Vendor Dashboard" Subtitle="Manage RFP invites, bids, and contracts" />
 
-<div class="grid grid-3">
-    <div class="card">
-        <div class="card-header">Pending Invites</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
-            @PendingInviteCount
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">Vendor Context</div>
+    <div class="grid grid-3" style="margin-top: 1rem; align-items: end;">
+        <div class="form-group">
+            <label class="form-label">Vendor Company Id</label>
+            <input type="number" class="form-control" @bind="CompanyIdInput" />
         </div>
-        <p style="margin: 0; color: var(--gray-700);">Awaiting your response</p>
-    </div>
-
-    <div class="card">
-        <div class="card-header">Active Bids</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
-            @ActiveBidCount
+        <div class="form-group" style="display: flex; gap: 0.75rem; align-items: center;">
+            <button type="button" class="btn btn-primary" @onclick="ApplyCompanyAsync" disabled="@IsLoading">Load Dashboard</button>
+            <button type="button" class="btn btn-secondary" @onclick="RefreshAsync" disabled="@(IsLoading || CompanyId <= 0)">Refresh</button>
         </div>
-        <p style="margin: 0; color: var(--gray-700);">Submitted and pending outcome</p>
-    </div>
-
-    <div class="card">
-        <div class="card-header">Signed Contracts</div>
-        <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
-            @SignedContractCount
-        </div>
-        <p style="margin: 0; color: var(--gray-700);">Ready to execute</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">Action Items</div>
-    <ul style="margin: 0; padding-left: 1.5rem; color: var(--gray-700);">
-        <li style="margin: 0.5rem 0;">Respond to 2 pending RFP invites</li>
-        <li style="margin: 0.5rem 0;">Review bid comparison results</li>
-        <li style="margin: 0.5rem 0;">Sign 1 pending contract from buyer</li>
-    </ul>
-</div>
+@if (IsLoading)
+{
+    <div class="card">
+        <div class="card-header">Loading dashboard</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching live vendor workflow metrics...</p>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Dashboard unavailable</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <button type="button" class="btn btn-secondary" @onclick="RefreshAsync">Retry</button>
+    </div>
+}
+else
+{
+    <div class="grid grid-3">
+        <div class="card">
+            <div class="card-header">Pending Invites</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--warning-color); margin: 1rem 0;">
+                @PendingInviteCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">Invites awaiting a vendor response</p>
+        </div>
 
-<div style="margin-top: 1.5rem;">
-    <a href="/vendor/invites" class="btn btn-primary">
-        View Pending Invites
-    </a>
-</div>
+        <div class="card">
+            <div class="card-header">Active Bids</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--primary-color); margin: 1rem 0;">
+                @ActiveBidCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">Submitted bids still in the workflow</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Signed Contracts</div>
+            <div style="font-size: 2rem; font-weight: 600; color: var(--success-color); margin: 1rem 0;">
+                @SignedContractCount
+            </div>
+            <p style="margin: 0; color: var(--gray-700);">Contracts fully signed by both parties</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Action Items</div>
+        <ul style="margin: 0; padding-left: 1.5rem; color: var(--gray-700);">
+            <li style="margin: 0.5rem 0;">@PendingInviteCount pending invites can be opened from the invite list.</li>
+            <li style="margin: 0.5rem 0;">@ActiveBidCount active bids can be reviewed and updated before finalization.</li>
+            <li style="margin: 0.5rem 0;">@PendingContractCount contracts are waiting for vendor signature action.</li>
+        </ul>
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="@($"/vendor/invites?companyId={CompanyId}")" class="btn btn-primary">View Pending Invites</a>
+    </div>
+}
 
 @code {
-    private int PendingInviteCount = 2;
-    private int ActiveBidCount = 4;
-    private int SignedContractCount = 1;
+    private bool IsLoading;
+    private string? ErrorMessage;
+    private int CompanyId = 1;
+    private string CompanyIdInput = "1";
+    private int PendingInviteCount;
+    private int ActiveBidCount;
+    private int SignedContractCount;
+    private int PendingContractCount;
 
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load vendor dashboard from API
-        await Task.CompletedTask;
+        await LoadAsync();
+    }
+
+    private async Task ApplyCompanyAsync()
+    {
+        if (!int.TryParse(CompanyIdInput, out var parsedCompanyId) || parsedCompanyId <= 0)
+        {
+            ErrorMessage = "Enter a valid vendor company id before loading dashboard data.";
+            return;
+        }
+
+        CompanyId = parsedCompanyId;
+        await LoadAsync();
+    }
+
+    private Task RefreshAsync()
+        => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var invitesTask = VendorApi.GetInvitesAsync(CompanyId, pageSize: 100);
+            var bidsTask = VendorApi.GetBidsAsync(CompanyId, pageSize: 100);
+            var contractsTask = VendorApi.GetContractsAsync(CompanyId, pageSize: 100);
+            await Task.WhenAll(invitesTask, bidsTask, contractsTask);
+
+            var invites = (await invitesTask).Items;
+            var bids = (await bidsTask).Items;
+            var contracts = (await contractsTask).Items;
+
+            PendingInviteCount = invites.Count(item => item.Status == (int)VendorParticipationStatus.Invited);
+            ActiveBidCount = bids.Count(item => item.Status == (int)RfpBidStatus.Submitted);
+            SignedContractCount = contracts.Count(item => item.Status == (int)RfpContractStatus.Signed);
+            PendingContractCount = contracts.Count(item => item.Status == (int)RfpContractStatus.PartiallySigned || item.Status == (int)RfpContractStatus.Created);
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading vendor dashboard: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }

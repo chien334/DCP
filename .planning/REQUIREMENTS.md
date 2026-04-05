@@ -73,11 +73,11 @@
 
 ### API Integration And Data Loading
 
-- [ ] **API-01**: UI pages consume typed API clients with standardized error handling and loading states.
-- [ ] **API-02**: Missing vendor and buyer API contracts are available and role-guarded for UI workflows.
-- [ ] **API-03**: Buyer pages load live data and execute create/finalize/contract actions against backend APIs.
-- [ ] **API-04**: Buyer workflow transitions handle conflict/validation responses (for example 409/422) predictably.
-- [ ] **API-05**: Vendor pages load live data and execute invite, bid, and contract sign/decline actions with role-safe behavior.
+- [x] **API-01**: UI pages consume typed API clients with standardized error handling and loading states.
+- [x] **API-02**: Missing vendor and buyer API contracts are available and role-guarded for UI workflows.
+- [x] **API-03**: Buyer pages load live data and execute create/finalize/contract actions against backend APIs.
+- [x] **API-04**: Buyer workflow transitions handle conflict/validation responses (for example 409/422) predictably.
+- [x] **API-05**: Vendor pages load live data and execute invite, bid, and contract sign/decline actions with role-safe behavior.
 
 ## v2 Requirements
 
@@ -144,19 +144,19 @@
 | UI-05 | Phase 7 | Complete |
 | UI-06 | Phase 7 | Complete |
 | UI-07 | Phase 7 | Complete |
-| API-01 | Phase 8 | Pending |
-| API-02 | Phase 8 | Pending |
-| API-03 | Phase 8 | Pending |
-| API-04 | Phase 8 | Pending |
-| API-05 | Phase 8 | Pending |
+| API-01 | Phase 8 | Complete |
+| API-02 | Phase 8 | Complete |
+| API-03 | Phase 8 | Complete |
+| API-04 | Phase 8 | Complete |
+| API-05 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 41 total
 - Mapped to phases: 41
 - Unmapped: 0
-- Complete: 36
-- Pending: 5
+- Complete: 41
+- Pending: 0
 
 ---
 *Requirements defined: 2026-04-04*
-*Last updated: 2026-04-05 after Phase 8 API integration planning*
+*Last updated: 2026-04-05 after Phase 8 API integration execution*

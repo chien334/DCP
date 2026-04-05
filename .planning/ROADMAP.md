@@ -30,6 +30,7 @@ This roadmap delivers an end-to-end source-to-contract platform in six phases: f
 - [x] **Phase 6: Contract Lifecycle And Signatures** - Create contract, sign/decline flow, final legal status tracking.
 - [x] **Phase 7: Buyer And Vendor UI And Dashboards** - Blazor components, buyer/vendor workflows, and role-based dashboards.
 - [ ] **Phase 8: API Integration And Data Loading** - Wire buyer/vendor UI with live APIs and close remaining endpoint contracts.
+- [ ] **Phase 9: Multi-Tenant Site Architecture** - Split into Admin, Vendor, and Buyer portals with professional UI.
 
 ## Phase Details
 
@@ -148,6 +149,7 @@ Plans:
 | 6. Contract Lifecycle And Signatures | 3/3 | Complete | 2026-04-05 |
 | 7. Buyer And Vendor UI And Dashboards | 3/3 | Complete | 2026-04-05 |
 | 8. API Integration And Data Loading | 0/3 | Planned | - |
+| 9. Multi-Tenant Site Architecture | 3/3 | Planned | - |
 
 ### Phase 8: API Integration And Data Loading
 
@@ -160,3 +162,15 @@ Plans:
 - [ ] 08-01-PLAN.md - Integration foundation and API contract closure.
 - [ ] 08-02-PLAN.md - Buyer workflow API wiring and data loading.
 - [ ] 08-03-PLAN.md - Vendor workflow API wiring and contract lifecycle integration.
+
+### Phase 9: Multi-Tenant Site Architecture - Split into Admin, Vendor, and Buyer portals
+
+**Goal:** Tách project thành 3 site độc lập (Admin, Vendor, Buyer) với UI chuyên nghiệp phục vụ B2B communication giữa các công ty.
+**Requirements**: MUI-01, MUI-02, MUI-03
+**Depends on:** Phase 8
+**Plans:** 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md - Admin Portal: Professional layout với sidebar navigation, company/employee management
+- [ ] 09-02-PLAN.md - Vendor Portal: Modern design cho external vendors với teal color scheme
+- [ ] 09-03-PLAN.md - Buyer Portal: Professional workspace với indigo color scheme và dark mode support

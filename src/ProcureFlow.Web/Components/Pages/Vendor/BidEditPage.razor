@@ -1,69 +1,250 @@
-@page "/vendor/bids/{BidId}/edit"
+@page "/vendor/bids/{BidId:int}/edit"
 @using ProcureFlow.Web.Components.Shared
+@using ProcureFlow.Web.Endpoints.Vendor
+@inject VendorApiClient VendorApi
+@inject NavigationManager Navigation
 
 <PageHeader Title="Edit Bid" Subtitle="Update your pricing and response details" />
 
-<div class="card" style="max-width: 900px;">
-    <div class="card-header">Update Your Bid</div>
-    
-    <div style="overflow-x: auto; margin-top: 1rem;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
-                    <th style="text-align: left; padding: 1rem; font-weight: 600;">Item</th>
-                    <th style="text-align: center; padding: 1rem; font-weight: 600;">Your Price</th>
-                    <th style="text-align: right; padding: 1rem; font-weight: 600;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">Laptops - High Performance</td>
-                    <td style="padding: 1rem;"><input type="number" class="form-control" value="500" style="width: 150px;" /></td>
-                    <td style="text-align: right; padding: 1rem;">$25,000</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--gray-200);">
-                    <td style="padding: 1rem;">Monitors - 27-inch</td>
-                    <td style="padding: 1rem;"><input type="number" class="form-control" value="1000" style="width: 150px;" /></td>
-                    <td style="text-align: right; padding: 1rem;">$20,000</td>
-                </tr>
-            </tbody>
-        </table>
+@if (IsLoading)
+{
+    <div class="card">
+        <div class="card-header">Loading bid</div>
+        <p style="margin: 1rem 0 0 0; color: var(--gray-700);">Fetching bid detail for editing...</p>
     </div>
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="card" style="border: 1px solid var(--danger-color);">
+        <div class="card-header">Unable to load bid</div>
+        <p style="margin: 1rem 0; color: var(--danger-color);">@ErrorMessage</p>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" @onclick="LoadAsync">Retry</button>
+            <a href="@DashboardHref" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+}
+else if (Bid is not null)
+{
+    <div class="card" style="max-width: 960px;">
+        <div class="card-header">Update Your Bid</div>
 
-    <div style="margin-top: 1.5rem; background-color: var(--gray-50); padding: 1rem; border-radius: 4px; text-align: right;">
-        <p style="margin: 0; font-size: 1.1rem;">
-            <strong>New Total:</strong> <span style="color: var(--primary-color); font-size: 1.3rem;">$45,000</span>
+        <div class="grid grid-3" style="margin-top: 1rem; align-items: end;">
+            <div class="form-group">
+                <label class="form-label">Vendor Company Id</label>
+                <input type="number" class="form-control" @bind="CompanyIdInput" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Currency</label>
+                <input type="text" class="form-control" @bind="Currency" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">VAT Rate</label>
+                <input type="number" class="form-control" @bind="VatRate" step="0.01" />
+            </div>
+        </div>
+
+        <div style="overflow-x: auto; margin-top: 1rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-300);">
+                        <th style="text-align: left; padding: 1rem; font-weight: 600;">Item</th>
+                        <th style="text-align: left; padding: 1rem; font-weight: 600;">Brand</th>
+                        <th style="text-align: center; padding: 1rem; font-weight: 600;">Qty</th>
+                        <th style="text-align: center; padding: 1rem; font-weight: 600;">Your Price</th>
+                        <th style="text-align: right; padding: 1rem; font-weight: 600;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Items)
+                    {
+                        <tr style="border-bottom: 1px solid var(--gray-200); vertical-align: top;">
+                            <td style="padding: 1rem;">#@item.RfpItemId</td>
+                            <td style="padding: 1rem;"><input type="text" class="form-control" @bind="item.Brand" /></td>
+                            <td style="text-align: center; padding: 1rem;">@item.Quantity</td>
+                            <td style="padding: 1rem;"><input type="number" class="form-control" @bind="item.UnitPrice" step="0.01" /></td>
+                            <td style="text-align: right; padding: 1rem;">@item.TotalPrice.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 1.5rem; background-color: var(--gray-50); padding: 1rem; border-radius: 4px; text-align: right;">
+            <p style="margin: 0; font-size: 1.1rem;"><strong>New Total:</strong> <span style="color: var(--primary-color); font-size: 1.3rem;">@GrandTotal.ToString("N2") @Currency</span></p>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label class="form-label">Notes / Terms</label>
+            <textarea class="form-control" rows="4" @bind="Proposal"></textarea>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(InfoMessage))
+        {
+            <div style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--primary-color); border-radius: 4px; color: var(--primary-color);">@InfoMessage</div>
+        }
+
+        <p style="color: var(--gray-700); margin: 1rem 0; font-size: 0.9rem;">
+            <strong>Note:</strong> You can edit your bid until the buyer finalizes the winning response.
         </p>
-    </div>
 
-    <div class="form-group" style="margin-top: 1.5rem;">
-        <label class="form-label">Notes / Terms</label>
-        <textarea class="form-control" rows="4">30-day warranty, free delivery, payment terms - Net 30</textarea>
+        <div style="display: flex; gap: 1rem;">
+            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleUpdate" disabled="@IsSaving">@(IsSaving ? "Saving..." : "Save Changes")</button>
+            <a href="@DashboardHref" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
     </div>
-
-    <p style="color: var(--gray-700); margin: 1rem 0; font-size: 0.9rem;">
-        <strong>Note:</strong> You can edit your bid until the deadline. After finalization, changes are not allowed.
-    </p>
-
-    <div style="display: flex; gap: 1rem;">
-        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
-        <a href="/vendor/bids" class="btn btn-secondary btn-lg">Cancel</a>
-    </div>
-</div>
+}
 
 @code {
     [Parameter]
-    public string BidId { get; set; } = string.Empty;
+    public int BidId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? CompanyIdQuery { get; set; }
+
+    private bool IsLoading = true;
+    private bool IsSaving;
+    private string? ErrorMessage;
+    private string? InfoMessage;
+    private int CompanyId = 1;
+    private string CompanyIdInput = "1";
+    private string Currency = "VND";
+    private decimal VatRate;
+    private string? Proposal;
+    private BidDetailResponse? Bid;
+    private List<EditableBidItemModel> Items = new();
+
+    private string DashboardHref => $"/vendor/dashboard?companyId={CompanyId}";
+    private decimal SubTotal => Items.Sum(item => item.TotalPrice);
+    private decimal GrandTotal => SubTotal * (1 + (VatRate / 100m));
 
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Load bid from /api/vendor/bids/{bidId}
-        await Task.CompletedTask;
+        if (CompanyIdQuery is > 0)
+        {
+            CompanyId = CompanyIdQuery.Value;
+            CompanyIdInput = CompanyId.ToString();
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            Bid = await VendorApi.GetBidAsync(BidId, CompanyId);
+            Currency = Bid.Currency;
+            VatRate = Bid.VatRate;
+            Proposal = Bid.Proposal;
+            Items = Bid.Items.Select(item => new EditableBidItemModel
+            {
+                RfpItemId = item.RfpItemId,
+                Quantity = item.Quantity,
+                Brand = item.Brand,
+                UnitPrice = item.UnitPrice,
+                Note = item.Note,
+                Specs = item.Specs.Select(spec => new BidSpecModel
+                {
+                    Key = spec.Key,
+                    ValueText = spec.ValueText,
+                    ValueNumber = spec.ValueNumber,
+                    ValueBoolean = spec.ValueBoolean,
+                    Unit = spec.Unit
+                }).ToList()
+            }).ToList();
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while loading bid detail: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     private async Task HandleUpdate()
     {
-        // TODO: PUT bid to /api/vendor/bids/{bidId}
-        await Task.CompletedTask;
+        if (!int.TryParse(CompanyIdInput, out var parsedCompanyId) || parsedCompanyId <= 0)
+        {
+            ErrorMessage = "Enter a valid vendor company id before updating the bid.";
+            return;
+        }
+
+        CompanyId = parsedCompanyId;
+        IsSaving = true;
+        ErrorMessage = null;
+        InfoMessage = null;
+
+        try
+        {
+            await VendorApi.UpdateBidAsync(BidId, new UpdateBidRequest(
+                CompanyId,
+                VatRate,
+                SubTotal,
+                GrandTotal,
+                Currency,
+                Proposal,
+                RfpBidPrivacyMode.Standard,
+                Items.Select(item => new CreateBidItemRequest(
+                    item.RfpItemId,
+                    item.Brand,
+                    item.Quantity,
+                    item.UnitPrice,
+                    item.TotalPrice,
+                    item.Note,
+                    item.Specs.Select(spec => new CreateBidItemSpecRequest(spec.Key, spec.ValueText, spec.ValueNumber, spec.ValueBoolean, spec.Unit)).ToList()))
+                    .ToList()));
+
+            InfoMessage = "Bid changes were saved successfully.";
+            await LoadAsync();
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Error.Code switch
+            {
+                "BID_ALREADY_FINALIZED" => "The buyer already finalized this RFP, so the bid can no longer be changed.",
+                "BID_STATUS_NOT_ALLOWED" => "This bid is no longer in an editable status.",
+                _ => ex.Error.Message
+            };
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error while updating the bid: {ex.Message}";
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private sealed class EditableBidItemModel
+    {
+        public int RfpItemId { get; set; }
+        public int Quantity { get; set; }
+        public string? Brand { get; set; }
+        public decimal UnitPrice { get; set; }
+        public string? Note { get; set; }
+        public List<BidSpecModel> Specs { get; set; } = new();
+        public decimal TotalPrice => Quantity * UnitPrice;
+    }
+
+    private sealed class BidSpecModel
+    {
+        public string Key { get; set; } = string.Empty;
+        public string? ValueText { get; set; }
+        public decimal? ValueNumber { get; set; }
+        public bool? ValueBoolean { get; set; }
+        public string? Unit { get; set; }
     }
 }

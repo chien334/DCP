@@ -14,32 +14,26 @@ public sealed class VendorApiClient
     }
 
     public Task<VendorInviteListResponse> GetInvitesAsync(
-        int? companyId = null,
+        int companyId,
         int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var url = $"/api/vendor/invites?page={page}&pageSize={pageSize}";
-        if (companyId.HasValue)
-        {
-            url += $"&companyId={companyId.Value}";
-        }
-
-        return GetAsync<VendorInviteListResponse>(url, cancellationToken);
+        return GetAsync<VendorInviteListResponse>($"/api/vendor/invites?companyId={companyId}&page={page}&pageSize={pageSize}", cancellationToken);
     }
 
+    public Task<VendorRfpDetailResponse> GetRfpAsync(int rfpId, int companyId, CancellationToken cancellationToken = default)
+        => GetAsync<VendorRfpDetailResponse>($"/api/vendor/rfps/{rfpId}?companyId={companyId}", cancellationToken);
+
     public Task<BidListResponse> GetBidsAsync(
-        int? companyId = null,
+        int companyId,
         int? rfpId = null,
         int page = 1,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var url = $"/api/vendor/bids?page={page}&pageSize={pageSize}";
-        if (companyId.HasValue)
-        {
-            url += $"&companyId={companyId.Value}";
-        }
+        url += $"&companyId={companyId}";
         if (rfpId.HasValue)
         {
             url += $"&rfpId={rfpId.Value}";
@@ -48,8 +42,24 @@ public sealed class VendorApiClient
         return GetAsync<BidListResponse>(url, cancellationToken);
     }
 
-    public Task<BidDetailResponse> GetBidAsync(int bidId, CancellationToken cancellationToken = default)
-        => GetAsync<BidDetailResponse>($"/api/vendor/bids/{bidId}", cancellationToken);
+    public Task<BidDetailResponse> GetBidAsync(int bidId, int companyId, CancellationToken cancellationToken = default)
+        => GetAsync<BidDetailResponse>($"/api/vendor/bids/{bidId}?companyId={companyId}", cancellationToken);
+
+    public Task<VendorContractListResponse> GetContractsAsync(
+        int companyId,
+        int? status = null,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/vendor/contracts?companyId={companyId}&page={page}&pageSize={pageSize}";
+        if (status.HasValue)
+        {
+            url += $"&status={status.Value}";
+        }
+
+        return GetAsync<VendorContractListResponse>(url, cancellationToken);
+    }
 
     public Task<VendorContractDetailResponse> GetContractAsync(int contractId, int companyId, CancellationToken cancellationToken = default)
         => GetAsync<VendorContractDetailResponse>($"/api/vendor/contracts/{contractId}?companyId={companyId}", cancellationToken);
